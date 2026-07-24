@@ -1,3 +1,5 @@
+import uuid
+
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
@@ -6,6 +8,7 @@ class Role(models.TextChoices):
     AGENT = "AGENT", "Agent"
 
 class User(AbstractUser):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     role = models.CharField(max_length=10, choices=Role.choices)
 
 
@@ -17,6 +20,7 @@ class MaritalStatus(models.TextChoices):
 
 
 class CustomerProfile(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.OneToOneField(
         User, on_delete=models.CASCADE, related_name="customer_profile",
         limit_choices_to={"role": Role.CLIENT},

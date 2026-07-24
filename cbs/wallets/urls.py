@@ -7,9 +7,9 @@ from .views import (
 
 urlpatterns = [
     path("profiles/", WalletProfileListCreateView.as_view()),
-    path("<int:wallet_id>/deposits/", WalletDepositListCreateView.as_view()),
-    path("<int:wallet_id>/transfers/", WalletTransferListCreateView.as_view()),
-    path("<int:wallet_id>/payments/", WalletPaymentListCreateView.as_view()),
-    path("<int:pk>/", WalletDetailView.as_view()),
-    path("<int:pk>/balance/", WalletBalanceView.as_view()),
+    path("<str:wallet_id>/deposits/", WalletDepositListCreateView.as_view()),
+    path("<str:wallet_id>/transfers/", WalletTransferListCreateView.as_view()),
+    path("<str:wallet_id>/payments/", WalletPaymentListCreateView.as_view()),
+    path("<str:pk>/", WalletDetailView.as_view()),
+    path("<str:pk>/balance/", WalletBalanceView.as_view()),
 ]

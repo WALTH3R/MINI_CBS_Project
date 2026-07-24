@@ -1,13 +1,13 @@
 from decimal import Decimal
 
 from django.db.models import Q, Sum
-from django.shortcuts import get_object_or_404
 from merchants.models import Transaction
 from rest_framework.generics import CreateAPIView, ListAPIView, RetrieveAPIView
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from cbs.utils import ValidatedUUIDLookupMixin, get_object_or_400
 from wallets.models import Wallet
 from wallets.permissions import IsAgent
 from .models import CustomerProfile
@@ -21,7 +21,7 @@ class CustomerCreateView(CreateAPIView):
     permission_classes = [IsAgent]
 
 
-class CustomerDetailView(RetrieveAPIView):
+class CustomerDetailView(ValidatedUUIDLookupMixin, RetrieveAPIView):
     queryset = CustomerProfile.objects.select_related("user")
     serializer_class = CustomerProfileSerializer
     permission_classes = [IsAgent]
@@ -58,7 +58,7 @@ class CustomerTransactionListView(ListAPIView):
 
     def get_customer(self):
         if not hasattr(self, "_customer"):
-            self._customer = get_object_or_404(CustomerProfile, pk=self.kwargs["customer_id"])
+            self._customer = get_object_or_400(CustomerProfile, self.kwargs["customer_id"])
         return self._customer
 
     def get_queryset(self):
@@ -72,7 +72,7 @@ class CustomerTransactionStatisticsView(APIView):
     permission_classes = [IsAgent]
 
     def get(self, request, customer_id):
-        customer = get_object_or_404(CustomerProfile, pk=customer_id)
+        customer = get_object_or_400(CustomerProfile, customer_id)
         wallets = Wallet.objects.filter(client=customer.user)
 
         def total(type_, wallet_field):

@@ -12,6 +12,6 @@ class MerchantAdmin(admin.ModelAdmin):
 
 @admin.register(Transaction)
 class TransactionAdmin(admin.ModelAdmin):
-    list_display = ("type", "from_wallet", "to_wallet", "amount", "performed_by", "created_at")
+    list_display = ("reference", "type", "from_wallet", "to_wallet", "amount", "performed_by", "created_at")
     list_filter = ("type",)
-    search_fields = ("from_wallet__tag", "to_wallet__tag", "performed_by__username")
+    search_fields = ("reference", "from_wallet__tag", "to_wallet__tag", "performed_by__username")

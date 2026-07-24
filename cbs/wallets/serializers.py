@@ -12,22 +12,24 @@ class WalletProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = WalletProfile
         fields = [
-            "id", "name", "max_balance", "max_transfer_amount",
+            "id", "name", "currency", "max_balance", "max_transfer_amount",
             "max_daily_transfer_total", "max_deposit_amount",
         ]
 
 
 class WalletSerializer(serializers.ModelSerializer):
     client = serializers.CharField(source="client.username", read_only=True)
-    profile = serializers.CharField(source="profile.name", read_only=True)
+    profile = WalletProfileSerializer(read_only=True)
 
     class Meta:
         model = Wallet
-        fields = ["id", "client", "profile", "tag", "balance", "currency", "created_at"]
+        fields = ["id", "client", "profile", "tag", "balance", "created_at"]
         read_only_fields = fields
 
 
 class WalletBalanceSerializer(serializers.ModelSerializer):
+    currency = serializers.CharField(source="profile.currency", read_only=True)
+
     class Meta:
         model = Wallet
         fields = ["id", "tag", "balance", "currency"]
@@ -35,17 +37,20 @@ class WalletBalanceSerializer(serializers.ModelSerializer):
 
 
 class DepositSerializer(serializers.ModelSerializer):
+    currency = serializers.CharField(source="to_wallet.profile.currency", read_only=True)
     performed_by = serializers.CharField(source="performed_by.username", read_only=True)
 
     class Meta:
         model = Transaction
-        fields = ["id", "amount", "performed_by", "created_at"]
+        fields = ["id", "reference", "amount", "currency", "performed_by", "created_at"]
         read_only_fields = fields
 
 
 class DepositCreateSerializer(serializers.Serializer):
     amount = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0.01"))
-    id = serializers.IntegerField(read_only=True)
+    id = serializers.UUIDField(read_only=True)
+    reference = serializers.CharField(read_only=True)
+    currency = serializers.CharField(source="to_wallet.profile.currency", read_only=True)
     performed_by = serializers.CharField(source="performed_by.username", read_only=True)
     created_at = serializers.DateTimeField(read_only=True)
 
@@ -58,27 +63,39 @@ class DepositCreateSerializer(serializers.Serializer):
 class TransferSerializer(serializers.ModelSerializer):
     from_wallet = serializers.CharField(source="from_wallet.tag", read_only=True)
     to_wallet = serializers.CharField(source="to_wallet.tag", read_only=True)
-    performed_by = serializers.CharField(source="performed_by.username", read_only=True)
+    currency = serializers.CharField(source="from_wallet.profile.currency", read_only=True)
+    performed_by = serializers.SerializerMethodField()
     direction = serializers.SerializerMethodField()
 
     class Meta:
         model = Transaction
-        fields = ["id", "direction", "from_wallet", "to_wallet", "amount", "performed_by", "created_at"]
+        fields = [
+            "id", "reference", "direction", "from_wallet", "to_wallet",
+            "amount", "currency", "performed_by", "created_at",
+        ]
         read_only_fields = fields
 
     def get_direction(self, obj):
         wallet = self.context.get("wallet")
-        return "IN" if wallet and obj.to_wallet_id == wallet.id else "OUT"
+        return "CREDIT" if wallet and obj.to_wallet_id == wallet.id else "DEBIT"
+
+    def get_performed_by(self, obj):
+        return {"user_id": obj.performed_by_id, "type": obj.performed_by.role}
 
 
 class TransferCreateSerializer(serializers.Serializer):
     to_tag = serializers.CharField(write_only=True)
     amount = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0.01"))
-    id = serializers.IntegerField(read_only=True)
+    id = serializers.UUIDField(read_only=True)
+    reference = serializers.CharField(read_only=True)
     from_wallet = serializers.CharField(source="from_wallet.tag", read_only=True)
     to_wallet = serializers.CharField(source="to_wallet.tag", read_only=True)
-    performed_by = serializers.CharField(source="performed_by.username", read_only=True)
+    currency = serializers.CharField(source="from_wallet.profile.currency", read_only=True)
+    performed_by = serializers.SerializerMethodField()
     created_at = serializers.DateTimeField(read_only=True)
+
+    def get_performed_by(self, obj):
+        return {"user_id": obj.performed_by_id, "type": obj.performed_by.role}
 
     def validate(self, attrs):
         from_wallet = self.context["wallet"]
@@ -109,14 +126,15 @@ class PaymentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Transaction
-        fields = ["id", "from_wallet", "merchant", "amount", "performed_by", "created_at"]
+        fields = ["id", "reference", "from_wallet", "merchant", "amount", "performed_by", "created_at"]
         read_only_fields = fields
 
 
 class PaymentCreateSerializer(serializers.Serializer):
     merchant_tag = serializers.CharField(write_only=True)
     amount = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0.01"))
-    id = serializers.IntegerField(read_only=True)
+    id = serializers.UUIDField(read_only=True)
+    reference = serializers.CharField(read_only=True)
     merchant = serializers.CharField(source="to_wallet.merchant.name", read_only=True)
     performed_by = serializers.CharField(source="performed_by.username", read_only=True)
     created_at = serializers.DateTimeField(read_only=True)

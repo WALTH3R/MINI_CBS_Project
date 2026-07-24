@@ -4,6 +4,7 @@ from rest_framework import serializers
 
 from merchants.models import Transaction
 from wallets.models import Wallet, WalletProfile
+from wallets.services import generate_unique_tag
 from .models import CustomerProfile, Role
 
 User = get_user_model()
@@ -29,7 +30,7 @@ class CustomerCreateSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, style={"input_type": "password"})
     name = serializers.CharField(source="user.last_name", max_length=150)
     first_name = serializers.CharField(source="user.first_name", max_length=150)
-    wallet_profile = serializers.PrimaryKeyRelatedField(
+    wallet_profile_id = serializers.PrimaryKeyRelatedField(
         queryset=WalletProfile.objects.all(), write_only=True
     )
 
@@ -38,33 +39,28 @@ class CustomerCreateSerializer(serializers.ModelSerializer):
         fields = [
             "id", "username", "password", "name", "first_name", "parent_name",
             "date_of_birth", "marital_status", "place_of_birth",
-            "national_id_number", "tag", "wallet_profile",
+            "national_id_number", "tag", "wallet_profile_id",
         ]
-        read_only_fields = ["id"]
+        read_only_fields = ["id", "tag"]
 
     def validate_username(self, value):
         if User.objects.filter(username=value).exists():
             raise serializers.ValidationError("This username is already taken.")
         return value
 
-    def validate_tag(self, value):
-        if Wallet.objects.filter(tag=value).exists():
-            raise serializers.ValidationError("This tag is already in use.")
-        return value
-
     def create(self, validated_data):
         user_data = validated_data.pop("user")
         username = validated_data.pop("username")
         password = validated_data.pop("password")
-        wallet_profile = validated_data.pop("wallet_profile")
-        tag = validated_data["tag"]
+        wallet_profile = validated_data.pop("wallet_profile_id")
 
         with transaction.atomic():
             user = User(username=username, role=Role.CLIENT, **user_data)
             user.set_password(password)
             user.save()
 
-            customer = CustomerProfile.objects.create(user=user, **validated_data)
+            tag = generate_unique_tag(username)
+            customer = CustomerProfile.objects.create(user=user, tag=tag, **validated_data)
             Wallet.objects.create(client=user, profile=wallet_profile, tag=tag)
 
         return customer
@@ -99,7 +95,7 @@ class TransactionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Transaction
         fields = [
-            "id", "type", "status", "from_wallet", "to_wallet",
+            "id", "reference", "type", "status", "from_wallet", "to_wallet",
             "amount", "performed_by", "created_at",
         ]
         read_only_fields = fields

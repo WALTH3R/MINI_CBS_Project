@@ -1,11 +1,11 @@
 from django.db.models import Q
-from django.shortcuts import get_object_or_404
 from merchants.models import Transaction
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.generics import ListCreateAPIView, RetrieveAPIView
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 
 from accounts.models import Role
+from cbs.utils import get_object_or_400, parse_uuid
 from .models import Wallet, WalletProfile
 from .permissions import IsAgent, IsClient
 from .serializers import (
@@ -36,6 +36,8 @@ def _filter_by_amount_and_date(qs, params):
 
 class WalletOwnerOrAgentMixin:
     def get_object(self):
+        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
+        parse_uuid(self.kwargs[lookup_url_kwarg])
         obj = super().get_object()
         user = self.request.user
         if user.role != Role.AGENT and obj.client_id != user.id:
@@ -46,7 +48,7 @@ class WalletOwnerOrAgentMixin:
 class WalletScopedMixin:
     def get_wallet(self):
         if not hasattr(self, "_wallet"):
-            self._wallet = get_object_or_404(Wallet, pk=self.kwargs["wallet_id"])
+            self._wallet = get_object_or_400(Wallet, self.kwargs["wallet_id"])
         return self._wallet
 
     def get_serializer_context(self):
@@ -123,9 +125,9 @@ class WalletTransferListCreateView(WalletScopedMixin, ListCreateAPIView):
         qs = _filter_by_amount_and_date(qs, self.request.query_params)
 
         direction = self.request.query_params.get("direction")
-        if direction == "IN":
+        if direction == "CREDIT":
             qs = qs.filter(to_wallet=wallet)
-        elif direction == "OUT":
+        elif direction == "DEBIT":
             qs = qs.filter(from_wallet=wallet)
 
         ordering = "created_at" if self.request.query_params.get("ordering") == "created_at" else "-created_at"

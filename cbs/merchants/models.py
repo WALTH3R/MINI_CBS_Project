@@ -1,8 +1,11 @@
+import uuid
+
 from django.db import models
 from wallets.models import Wallet
 
-# Add Merchant user role in User Models
+
 class Merchant(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=100)
     owner = models.ForeignKey("accounts.User", on_delete=models.PROTECT, related_name="merchants")
     wallet = models.OneToOneField(Wallet, on_delete=models.PROTECT, related_name="merchant")
@@ -10,8 +13,7 @@ class Merchant(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
 
-# Add Transaction code
-# Accounting Schema
+
 class Transaction(models.Model):
     class Type(models.TextChoices):
         DEPOSIT = "DEPOSIT", "Deposit"
@@ -23,6 +25,8 @@ class Transaction(models.Model):
         PENDING = "PENDING", "Pending"
         FAILED = "FAILED", "Failed"
 
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    reference = models.CharField(max_length=20, unique=True, editable=False)
     type = models.CharField(max_length=10, choices=Type.choices)
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.COMPLETED)
     from_wallet = models.ForeignKey(Wallet, null=True, blank=True, on_delete=models.PROTECT, related_name="outgoing")

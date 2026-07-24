@@ -1,4 +1,7 @@
 # used when an operation involves multiple steps
+import random
+import re
+import string
 from decimal import Decimal
 from django.db import models
 from django.db import transaction as db_transaction
@@ -11,6 +14,8 @@ from merchants.models import Merchant, Transaction
 def do_transfer(from_wallet, to_wallet, amount: Decimal, performed_by):
     profile = from_wallet.profile
 
+    if from_wallet.profile.currency != to_wallet.profile.currency:
+        raise ValidationError("Cannot transfer between wallets with different currencies.")
     if amount > profile.max_transfer_amount:
         raise ValidationError("Amount exceeds this wallet's max transfer limit.")
     if from_wallet.balance < amount:
@@ -31,6 +36,7 @@ def do_transfer(from_wallet, to_wallet, amount: Decimal, performed_by):
         from_wallet.save()
         to_wallet.save()
         return Transaction.objects.create(
+            reference=generate_transaction_reference("TRANSFER"),
             type="TRANSFER", from_wallet=from_wallet, to_wallet=to_wallet,
             amount=amount, performed_by=performed_by,
         )
@@ -46,6 +52,7 @@ def do_deposit(to_wallet, amount: Decimal, performed_by):
         to_wallet.balance += amount
         to_wallet.save()
         return Transaction.objects.create(
+            reference=generate_transaction_reference("DEPOSIT"),
             type="DEPOSIT", from_wallet=None, to_wallet=to_wallet,
             amount=amount, performed_by=performed_by,
         )
@@ -72,6 +79,7 @@ def do_pay_merchant(from_wallet, merchant, amount: Decimal, performed_by):
         from_wallet.save()
         to_wallet.save()
         return Transaction.objects.create(
+            reference=generate_transaction_reference("PAYMENT"),
             type="PAYMENT", from_wallet=from_wallet, to_wallet=to_wallet,
             amount=amount, performed_by=performed_by,
         )
@@ -87,3 +95,22 @@ def resolve_merchant_by_tag(tag: str) -> Merchant:
         return Merchant.objects.get(wallet__tag=tag, is_active=True)
     except Merchant.DoesNotExist:
         raise ValidationError("No active merchant found for this tag.")
+
+def generate_unique_tag(base: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", ".", base.lower()).strip(".") or "user"
+    for _ in range(20):
+        candidate = f"{slug}.{random.randint(1000, 9999)}"
+        if not Wallet.objects.filter(tag=candidate).exists():
+            return candidate
+    raise ValidationError("Could not generate a unique tag, please try again.")
+
+_REFERENCE_PREFIXES = {"DEPOSIT": "DEP", "TRANSFER": "TRF", "PAYMENT": "PAY"}
+
+def generate_transaction_reference(type_: str) -> str:
+    prefix = _REFERENCE_PREFIXES.get(type_, "TXN")
+    alphabet = string.ascii_uppercase + string.digits
+    for _ in range(20):
+        candidate = f"{prefix}-{''.join(random.choices(alphabet, k=10))}"
+        if not Transaction.objects.filter(reference=candidate).exists():
+            return candidate
+    raise ValidationError("Could not generate a unique transaction reference, please try again.")

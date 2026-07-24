@@ -1,9 +1,9 @@
-from django.shortcuts import get_object_or_404
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.generics import ListAPIView, ListCreateAPIView, RetrieveUpdateAPIView
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 
 from accounts.models import Role
+from cbs.utils import ValidatedUUIDLookupMixin, get_object_or_400
 from .models import Merchant, Transaction
 from .serializers import (
     MerchantCreateSerializer, MerchantPaymentSerializer, MerchantSerializer, MerchantUpdateSerializer,
@@ -22,7 +22,7 @@ class MerchantListCreateView(ListCreateAPIView):
         return [IsAuthenticated()]
 
 
-class MerchantDetailView(RetrieveUpdateAPIView):
+class MerchantDetailView(ValidatedUUIDLookupMixin, RetrieveUpdateAPIView):
     queryset = Merchant.objects.select_related("owner", "wallet")
 
     def get_serializer_class(self):
@@ -39,7 +39,7 @@ class MerchantPaymentListView(ListAPIView):
 
     def get_merchant(self):
         if not hasattr(self, "_merchant"):
-            self._merchant = get_object_or_404(Merchant, pk=self.kwargs["merchant_id"])
+            self._merchant = get_object_or_400(Merchant, self.kwargs["merchant_id"])
         return self._merchant
 
     def get_queryset(self):

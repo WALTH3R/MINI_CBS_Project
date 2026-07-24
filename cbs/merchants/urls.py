@@ -4,6 +4,6 @@ from .views import MerchantDetailView, MerchantListCreateView, MerchantPaymentLi
 
 urlpatterns = [
     path("", MerchantListCreateView.as_view()),
-    path("<int:pk>/", MerchantDetailView.as_view()),
-    path("<int:merchant_id>/payments/", MerchantPaymentListView.as_view()),
+    path("<str:pk>/", MerchantDetailView.as_view()),
+    path("<str:merchant_id>/payments/", MerchantPaymentListView.as_view()),
 ]

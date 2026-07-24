@@ -4,6 +4,7 @@ from rest_framework import serializers
 
 from accounts.models import Role
 from wallets.models import Wallet, WalletProfile
+from wallets.services import generate_unique_tag
 from .models import Merchant, Transaction
 
 User = get_user_model()
@@ -21,22 +22,17 @@ class MerchantSerializer(serializers.ModelSerializer):
 
 class MerchantCreateSerializer(serializers.ModelSerializer):
     owner = serializers.PrimaryKeyRelatedField(queryset=User.objects.filter(role=Role.AGENT))
-    wallet_profile = serializers.PrimaryKeyRelatedField(queryset=WalletProfile.objects.all(), write_only=True)
-    tag = serializers.CharField(write_only=True)
+    wallet_profile_id = serializers.PrimaryKeyRelatedField(queryset=WalletProfile.objects.all(), write_only=True)
+    tag = serializers.CharField(source="wallet.tag", read_only=True)
 
     class Meta:
         model = Merchant
-        fields = ["id", "name", "owner", "wallet_profile", "tag"]
+        fields = ["id", "name", "owner", "wallet_profile_id", "tag"]
         read_only_fields = ["id"]
 
-    def validate_tag(self, value):
-        if Wallet.objects.filter(tag=value).exists():
-            raise serializers.ValidationError("This tag is already in use.")
-        return value
-
     def create(self, validated_data):
-        wallet_profile = validated_data.pop("wallet_profile")
-        tag = validated_data.pop("tag")
+        wallet_profile = validated_data.pop("wallet_profile_id")
+        tag = generate_unique_tag(validated_data["name"])
         with transaction.atomic():
             wallet = Wallet.objects.create(client=validated_data["owner"], profile=wallet_profile, tag=tag)
             return Merchant.objects.create(wallet=wallet, **validated_data)
@@ -55,5 +51,5 @@ class MerchantPaymentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Transaction
-        fields = ["id", "from_wallet", "payer", "amount", "performed_by", "created_at"]
+        fields = ["id", "reference", "from_wallet", "payer", "amount", "performed_by", "created_at"]
         read_only_fields = fields
