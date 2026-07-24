@@ -59,19 +59,25 @@ def do_deposit(to_wallet, amount: Decimal, performed_by):
 
 
 def do_pay_merchant(from_wallet, merchant, amount: Decimal, performed_by):
-    if not merchant.is_active:
-        raise ValidationError("This merchant account is not active.")
-
     profile = from_wallet.profile
     to_wallet = merchant.wallet
+    reference = generate_transaction_reference("PAYMENT")
 
+    def declined(reason):
+        return Transaction.objects.create(
+            reference=reference, type="PAYMENT", status=Transaction.Status.FAILED,
+            failure_reason=reason, from_wallet=from_wallet, to_wallet=to_wallet,
+            amount=amount, performed_by=performed_by,
+        )
+
+    if not merchant.is_active:
+        return declined("This merchant account is not active.")
     if amount > profile.max_transfer_amount:
-        raise ValidationError("Amount exceeds this wallet's max transfer limit.")
+        return declined("Amount exceeds this wallet's max transfer limit.")
     if from_wallet.balance < amount:
-        raise ValidationError("Insufficient balance.")
-    
+        return declined("Insufficient balance.")
     if to_wallet.balance + amount > to_wallet.profile.max_balance:
-        raise ValidationError("Merchant wallet would exceed its max balance.")
+        return declined("Merchant wallet would exceed its max balance.")
 
     with db_transaction.atomic():
         from_wallet.balance -= amount
@@ -79,7 +85,7 @@ def do_pay_merchant(from_wallet, merchant, amount: Decimal, performed_by):
         from_wallet.save()
         to_wallet.save()
         return Transaction.objects.create(
-            reference=generate_transaction_reference("PAYMENT"),
+            reference=reference,
             type="PAYMENT", from_wallet=from_wallet, to_wallet=to_wallet,
             amount=amount, performed_by=performed_by,
         )
@@ -92,9 +98,9 @@ def resolve_wallet_by_tag(tag: str) -> Wallet:
 
 def resolve_merchant_by_tag(tag: str) -> Merchant:
     try:
-        return Merchant.objects.get(wallet__tag=tag, is_active=True)
+        return Merchant.objects.get(wallet__tag=tag)
     except Merchant.DoesNotExist:
-        raise ValidationError("No active merchant found for this tag.")
+        raise ValidationError("No merchant found for this tag.")
 
 def generate_unique_tag(base: str) -> str:
     slug = re.sub(r"[^a-z0-9]+", ".", base.lower()).strip(".") or "user"

@@ -75,15 +75,24 @@ class CustomerTransactionStatisticsView(APIView):
         customer = get_object_or_400(CustomerProfile, customer_id)
         wallets = Wallet.objects.filter(client=customer.user)
 
+        # Unless the caller explicitly filters by status, these totals should only
+        # reflect money that actually moved — a FAILED payment attempt (see Topic 4)
+        # is persisted now but must not inflate "total paid" or the transaction count.
+        default_to_completed = "status" not in request.query_params
+
         def total(type_, wallet_field):
             qs = Transaction.objects.filter(type=type_, **{f"{wallet_field}__in": wallets})
             qs = _filter_transactions(qs, request.query_params, include_type=False)
+            if default_to_completed:
+                qs = qs.filter(status=Transaction.Status.COMPLETED)
             return qs.aggregate(total=Sum("amount"))["total"] or Decimal("0")
 
         all_qs = _filter_transactions(
             Transaction.objects.filter(Q(from_wallet__in=wallets) | Q(to_wallet__in=wallets)),
             request.query_params,
         )
+        if default_to_completed:
+            all_qs = all_qs.filter(status=Transaction.Status.COMPLETED)
 
         return Response({
             "total_deposited": total(Transaction.Type.DEPOSIT, "to_wallet"),

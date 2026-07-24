@@ -1,0 +1,1101 @@
+{
+  "info": {
+    "title": "Default module",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "tags": [],
+  "paths": {
+    "/api/token/": {
+      "post": {
+        "summary": "Get auth Token Customer",
+        "deprecated": false,
+        "description": "Exchange a username/password for a JWT pair. works for Customers",
+        "tags": [],
+        "parameters": [
+          {
+            "required": true,
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {}
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {},
+            "examples": {
+              "application/json": {
+                "refresh": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTc4NDkyMTUyMCwiaWF0IjoxNzg0ODM1MTIwLCJqdGkiOiJlNDgxZDRlNTEyMzU0YmM2ODk4YzNhYjliYzY1Njc0NSIsInVzZXJfaWQiOiIzIn0.9KVKl8Lx2U-LvVcVt9o5STd1YB_nI4zDTYoHuQBvAjU",
+                "access": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzg0ODM2OTIwLCJpYXQiOjE3ODQ4MzUxMjAsImp0aSI6ImZjNWNlZjk0ZjRjNjQxNGZhY2UyYjBhOWUyMTJhZDE5IiwidXNlcl9pZCI6IjMifQ.14r6A4m_ig0CTDJ2QTboW3PQHmaUasNXEVDRsCUvv5g"
+              }
+            },
+            "schema": {
+              "type": "object",
+              "properties": {}
+            }
+          }
+        },
+        "security": [],
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ]
+      }
+    },
+    "/api/me/": {
+      "get": {
+        "summary": "Get Current Logged in User",
+        "deprecated": false,
+        "description": "Get the information about the current Authentified user",
+        "tags": [],
+        "parameters": [
+          {
+            "name": "A",
+            "in": "header",
+            "description": "",
+            "required": false,
+            "type": "string",
+            "x-example": ""
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {},
+            "examples": {
+              "application/json": {
+                "user": "warlord"
+              }
+            },
+            "schema": {
+              "type": "object",
+              "properties": {}
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ]
+      }
+    },
+    "/api/token/refresh/": {
+      "get": {
+        "summary": "Get Refresh Token",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [
+          {
+            "name": "refresh",
+            "in": "formData",
+            "required": true,
+            "type": "string",
+            "description": "Refresh Login from Login"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {},
+            "schema": {
+              "type": "object",
+              "properties": {}
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "consumes": [
+          "multipart/form-data"
+        ],
+        "produces": [
+          "application/json"
+        ]
+      }
+    },
+    "/api/accounts/agents/": {
+      "post": {
+        "summary": "Create Agent",
+        "deprecated": false,
+        "description": "Used to Create Agents, only Admins can create agents",
+        "tags": [],
+        "parameters": [
+          {
+            "name": "username",
+            "in": "formData",
+            "required": true,
+            "type": "string",
+            "description": "Must be unique"
+          },
+          {
+            "name": "password",
+            "in": "formData",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "first_name",
+            "in": "formData",
+            "type": "string"
+          },
+          {
+            "name": "last_anme",
+            "in": "formData",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {},
+            "schema": {
+              "type": "object",
+              "properties": {}
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "consumes": [
+          "multipart/form-data"
+        ],
+        "produces": [
+          "application/json"
+        ]
+      }
+    },
+    "/api/accounts/customers/": {
+      "post": {
+        "summary": "Create Customer",
+        "deprecated": false,
+        "description": "Agents can create Customers + their wallets ",
+        "tags": [],
+        "parameters": [
+          {
+            "name": "username",
+            "in": "formData",
+            "required": true,
+            "type": "string",
+            "description": "Must be unique"
+          },
+          {
+            "name": "password",
+            "in": "formData",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "name",
+            "in": "formData",
+            "required": true,
+            "type": "string",
+            "description": "Max 150 chars"
+          },
+          {
+            "name": "first_name",
+            "in": "formData",
+            "required": true,
+            "type": "string",
+            "description": "Max 150 chars"
+          },
+          {
+            "name": "parent_name",
+            "in": "formData",
+            "required": true,
+            "type": "string",
+            "description": "Max 150 chars"
+          },
+          {
+            "name": "date_of_birth",
+            "in": "formData",
+            "required": true,
+            "format": "date",
+            "type": "string",
+            "description": "YYYY-MM-DD"
+          },
+          {
+            "name": "marital_status",
+            "in": "formData",
+            "required": true,
+            "format": "enum",
+            "type": "string",
+            "description": "SINGLE MARRIED DIVORCED WIDOWED"
+          },
+          {
+            "name": "place_of_birth",
+            "in": "formData",
+            "required": true,
+            "type": "string",
+            "description": "Max 100 chars"
+          },
+          {
+            "name": "national_id_number",
+            "in": "formData",
+            "required": true,
+            "type": "string",
+            "description": "Max 50 chars"
+          },
+          {
+            "name": "wallet_profile_id",
+            "in": "formData",
+            "required": true,
+            "format": "uuid",
+            "type": "string",
+            "description": "id from GET wallets/profiles endpoint"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {},
+            "schema": {
+              "type": "object",
+              "properties": {}
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "consumes": [
+          "multipart/form-data"
+        ],
+        "produces": [
+          "application/json"
+        ]
+      }
+    },
+    "/api/wallets/profiles/": {
+      "post": {
+        "summary": "Create Wallet Profile",
+        "deprecated": false,
+        "description": "Wallet profiles defines the customers wallets, they are created by the Admin",
+        "tags": [],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "formData",
+            "required": true,
+            "type": "string",
+            "description": "Max 50 chars"
+          },
+          {
+            "name": "currency",
+            "in": "formData",
+            "type": "string",
+            "description": "3 letter code, default is EUR"
+          },
+          {
+            "name": "max_balance",
+            "in": "formData",
+            "required": true,
+            "type": "number",
+            "description": "12 digits max"
+          },
+          {
+            "name": "max_transfer_amount",
+            "in": "formData",
+            "required": true,
+            "type": "number"
+          },
+          {
+            "name": "max_daily_trnasfer_total",
+            "in": "formData",
+            "required": true,
+            "type": "number"
+          },
+          {
+            "name": "max_deposit_amount",
+            "in": "formData",
+            "required": true,
+            "type": "number"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {},
+            "schema": {
+              "type": "object",
+              "properties": {}
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "consumes": [
+          "multipart/form-data"
+        ],
+        "produces": [
+          "application/json"
+        ]
+      },
+      "get": {
+        "summary": "Get All Wallet Profiles",
+        "deprecated": false,
+        "description": "Lists all the Wallet profiles details",
+        "tags": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {},
+            "schema": {
+              "type": "object",
+              "properties": {}
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ]
+      }
+    },
+    "/api/wallets/{id}/": {
+      "get": {
+        "summary": "Get Wallet Details",
+        "deprecated": false,
+        "description": "The customer gets the details of his wallet",
+        "tags": [],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "type": "string",
+            "x-example": "2"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {},
+            "examples": {
+              "application/json": {
+                "id": 2,
+                "client": "MUCECE",
+                "profile": "IHELA_PROFILE",
+                "tag": "ndik.leo",
+                "balance": "9999975.00",
+                "currency": "BIF",
+                "created_at": "2026-07-23T11:15:20.311422Z"
+              }
+            },
+            "schema": {
+              "type": "object",
+              "properties": {}
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ]
+      }
+    },
+    "/api/wallets/{id}/balance/": {
+      "get": {
+        "summary": "Get Wallet Balance",
+        "deprecated": false,
+        "description": "The customer  checks his wallet balance",
+        "tags": [],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "type": "string",
+            "x-example": "2"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {},
+            "schema": {
+              "type": "object",
+              "properties": {}
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ]
+      }
+    },
+    "/api/wallets/{id}/deposits/": {
+      "post": {
+        "summary": "Make Deposit",
+        "deprecated": false,
+        "description": "Only Agents can make deposits to customer wallets",
+        "tags": [],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The type has to be uuid",
+            "required": true,
+            "format": "uuid",
+            "type": "string",
+            "x-example": "a08c214eeaa44f599c055c3510e27465"
+          },
+          {
+            "required": true,
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {}
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {},
+            "schema": {
+              "type": "object",
+              "properties": {}
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ]
+      },
+      "get": {
+        "summary": "Get Deposit History",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "type": "string",
+            "x-example": "2"
+          },
+          {
+            "required": true,
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {}
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {},
+            "schema": {
+              "type": "object",
+              "properties": {}
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ]
+      }
+    },
+    "/api/merchants/": {
+      "post": {
+        "summary": "Create Merchants",
+        "deprecated": false,
+        "description": "Only Agents can create Merchants, Tag created by the server",
+        "tags": [],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "formData",
+            "required": true,
+            "type": "string",
+            "description": "Max 100 chars"
+          },
+          {
+            "name": "owner",
+            "in": "formData",
+            "required": true,
+            "format": "uuid",
+            "type": "string",
+            "description": "id of an exisiting agent"
+          },
+          {
+            "name": "wallet_profile_id",
+            "in": "formData",
+            "required": true,
+            "format": "uuid",
+            "type": "string",
+            "description": "id from wallet profiles"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {},
+            "examples": {
+              "application/json": {
+                "id": "7280e6de-838f-44fa-9112-f8054a1662ff",
+                "name": "Regideso",
+                "owner": "026ce8ee-4734-45dd-875d-abb6a47e7fd0",
+                "tag": "regideso.6975"
+              }
+            },
+            "schema": {
+              "type": "object",
+              "properties": {}
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "consumes": [
+          "multipart/form-data"
+        ],
+        "produces": [
+          "application/json"
+        ]
+      },
+      "get": {
+        "summary": "Get All Merchant Details",
+        "deprecated": false,
+        "description": "List all the available Merchants",
+        "tags": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {},
+            "examples": {
+              "application/json": [
+                {
+                  "id": "7280e6de-838f-44fa-9112-f8054a1662ff",
+                  "name": "Regideso",
+                  "owner": "regid",
+                  "wallet_tag": "regideso.6975",
+                  "is_active": true,
+                  "created_at": "2026-07-24T19:10:05.389620Z"
+                }
+              ]
+            },
+            "schema": {
+              "type": "object",
+              "properties": {}
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ]
+      }
+    },
+    "/api/merchants/{id}/": {
+      "get": {
+        "summary": "Get Merchant Details",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Merchant ID",
+            "required": true,
+            "format": "uuid",
+            "type": "string",
+            "x-example": ""
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {},
+            "examples": {
+              "application/json": [
+                {
+                  "id": 3,
+                  "name": "CityElectric",
+                  "owner": "agent2",
+                  "wallet_tag": "city.electric.tag",
+                  "is_active": true,
+                  "created_at": "2026-07-23T20:55:59.739325Z"
+                }
+              ]
+            },
+            "schema": {
+              "type": "object",
+              "properties": {}
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ]
+      }
+    },
+    "/api/merchants/{id}/payments/": {
+      "get": {
+        "summary": "Get Merchant Payements ",
+        "deprecated": false,
+        "description": "The merchants gets details from Customer payments",
+        "tags": [],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "format": "uuid",
+            "type": "string",
+            "x-example": ""
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {},
+            "examples": {
+              "application/json": {
+                "detail": "No Merchant matches the given query."
+              }
+            },
+            "schema": {
+              "type": "object",
+              "properties": {}
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ]
+      }
+    },
+    "/api/wallets/{wallet_id}/payments/": {
+      "post": {
+        "summary": "Pay Bill",
+        "deprecated": false,
+        "description": "Customers pays bill to Merchant",
+        "tags": [],
+        "parameters": [
+          {
+            "name": "wallet_id",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "type": "string",
+            "x-example": "a08c214eeaa44f599c055c3510e27465"
+          },
+          {
+            "required": true,
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "merchant_tag": {
+                  "type": "string"
+                },
+                "amount": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "merchant_tag",
+                "amount"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {},
+            "examples": {
+              "application/json": {
+                "amount": "1000.00",
+                "id": "0aadd8f4-5fd8-4eb1-9725-c9fccc4a5afb",
+                "reference": "PAY-XT7U4P2C2M",
+                "status": "COMPLETED",
+                "failure_reason": "",
+                "merchant": "Regideso",
+                "performed_by": "gigi",
+                "created_at": "2026-07-24T20:43:29.405333Z"
+              }
+            },
+            "schema": {
+              "type": "object",
+              "properties": {
+                "amount": {
+                  "type": "integer"
+                },
+                "id": {
+                  "type": "string"
+                },
+                "reference": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "COMPLETED",
+                    "FAILED"
+                  ]
+                },
+                "failure_reason": {
+                  "type": "string",
+                  "x-nullable": true
+                },
+                "merchant": {
+                  "type": "string"
+                },
+                "performed_by": {
+                  "type": "string"
+                },
+                "created_at": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "amount",
+                "id",
+                "reference",
+                "status",
+                "merchant",
+                "performed_by",
+                "created_at"
+              ]
+            }
+          },
+          "400": {
+            "description": "",
+            "headers": {},
+            "examples": {
+              "application/json": {
+                "amount": [
+                  "Ensure that there are no more than 12 digits in total."
+                ]
+              }
+            },
+            "schema": {
+              "type": "object",
+              "properties": {}
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ]
+      }
+    },
+    "/api/wallets/{id}/transfers/": {
+      "post": {
+        "summary": "Make Transfer",
+        "deprecated": false,
+        "description": "Only Customers can make transfers from their wallet to another customers wallet",
+        "tags": [],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "to_tag",
+            "in": "formData",
+            "required": true,
+            "type": "string",
+            "description": "Recievers tag, must have same wallet currency"
+          },
+          {
+            "name": "amount",
+            "in": "formData",
+            "required": true,
+            "type": "number",
+            "description": "Minimum 0.01"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {},
+            "schema": {
+              "type": "object",
+              "properties": {}
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "consumes": [
+          "multipart/form-data"
+        ],
+        "produces": [
+          "application/json"
+        ]
+      },
+      "get": {
+        "summary": "Get Transfer History",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "type": "string",
+            "x-example": "2"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {},
+            "schema": {
+              "type": "object",
+              "properties": {}
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ]
+      }
+    },
+    "/api/accounts/customers/{id}/transactions/statistics/": {
+      "get": {
+        "summary": "Get All Agent Transactions",
+        "deprecated": false,
+        "description": "The Agent gets the informaton about all of his transactions (total deposits,transfer,bills,etc)",
+        "tags": [],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Customer Profile ID",
+            "required": true,
+            "format": "uuid",
+            "type": "string",
+            "x-example": ""
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "COMPLETED-PENDING-FAILED",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "date_from",
+            "in": "query",
+            "description": "YYYY-MM-DD",
+            "required": false,
+            "format": "date",
+            "type": "string"
+          },
+          {
+            "name": "date_to",
+            "in": "query",
+            "description": "YYYY-MM-DD",
+            "required": false,
+            "format": "date",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {},
+            "schema": {
+              "type": "object",
+              "properties": {}
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ]
+      }
+    },
+    "/api/accounts/customers/{id}/transactions/": {
+      "get": {
+        "summary": "Get All Agent Transactions of Customer",
+        "deprecated": false,
+        "description": "Get all the types of transaction done by the customer",
+        "tags": [],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Customer profile ID",
+            "required": true,
+            "format": "uuid",
+            "type": "string",
+            "x-example": ""
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "description": "DEPOSIT-TRANSFER-PAYMENT",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "COMPLETED-PENDING-FAILED",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "date_from",
+            "in": "query",
+            "description": "YYYY-MM-DD, inclusive",
+            "required": false,
+            "format": "date",
+            "type": "string"
+          },
+          {
+            "name": "date_to",
+            "in": "query",
+            "description": "YYY-MM-DD,inclusive",
+            "required": false,
+            "format": "date",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {},
+            "schema": {
+              "type": "object",
+              "properties": {}
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ]
+      }
+    }
+  },
+  "security": [],
+  "swagger": "2.0",
+  "definitions": {},
+  "securityDefinitions": {
+    "bearer": {
+      "type": "apiKey",
+      "name": "Authorization",
+      "in": "header"
+    }
+  },
+  "x-components": {
+    "responses": {}
+  }
+}

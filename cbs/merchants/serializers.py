@@ -51,5 +51,8 @@ class MerchantPaymentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Transaction
-        fields = ["id", "reference", "from_wallet", "payer", "amount", "performed_by", "created_at"]
+        fields = [
+            "id", "reference", "status", "failure_reason", "from_wallet",
+            "payer", "amount", "performed_by", "created_at",
+        ]
         read_only_fields = fields

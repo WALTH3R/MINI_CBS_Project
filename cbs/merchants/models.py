@@ -29,6 +29,7 @@ class Transaction(models.Model):
     reference = models.CharField(max_length=20, unique=True, editable=False)
     type = models.CharField(max_length=10, choices=Type.choices)
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.COMPLETED)
+    failure_reason = models.CharField(max_length=255, blank=True, default="")
     from_wallet = models.ForeignKey(Wallet, null=True, blank=True, on_delete=models.PROTECT, related_name="outgoing")
     to_wallet = models.ForeignKey(Wallet, on_delete=models.PROTECT, related_name="incoming")
     amount = models.DecimalField(max_digits=12, decimal_places=2)

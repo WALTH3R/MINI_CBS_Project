@@ -126,7 +126,10 @@ class PaymentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Transaction
-        fields = ["id", "reference", "from_wallet", "merchant", "amount", "performed_by", "created_at"]
+        fields = [
+            "id", "reference", "status", "failure_reason", "from_wallet",
+            "merchant", "amount", "performed_by", "created_at",
+        ]
         read_only_fields = fields
 
 
@@ -135,6 +138,8 @@ class PaymentCreateSerializer(serializers.Serializer):
     amount = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0.01"))
     id = serializers.UUIDField(read_only=True)
     reference = serializers.CharField(read_only=True)
+    status = serializers.CharField(read_only=True)
+    failure_reason = serializers.CharField(read_only=True)
     merchant = serializers.CharField(source="to_wallet.merchant.name", read_only=True)
     performed_by = serializers.CharField(source="performed_by.username", read_only=True)
     created_at = serializers.DateTimeField(read_only=True)
