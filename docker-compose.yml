@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgres:16
+    container_name: mini_cbs_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: mini_cbs
+      POSTGRES_USER: minicbs
+      POSTGRES_PASSWORD: minicbs_dev_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - mini_cbs_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U minicbs -d mini_cbs"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mini_cbs_pgdata:
