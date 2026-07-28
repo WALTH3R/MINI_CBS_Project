@@ -23,7 +23,7 @@ def do_transfer(from_wallet, to_wallet, amount: Decimal, performed_by):
     if to_wallet.balance + amount > to_wallet.profile.max_balance:
         raise ValidationError("Destination wallet would exceed its max balance.")
 
-    # daily limit check
+    
     today_total = Transaction.objects.filter(
         from_wallet=from_wallet, type="TRANSFER", created_at__date=timezone.now().date()
     ).aggregate(total=models.Sum("amount"))["total"] or Decimal("0")

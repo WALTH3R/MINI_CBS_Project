@@ -1,3 +1,294 @@
-from django.test import TestCase
+from decimal import Decimal
 
-# Create your tests here.
+from rest_framework import status
+
+from cbs.test_base import BaseAPITestCase
+
+
+class WalletProfileTests(BaseAPITestCase):
+    def test_admin_can_create_profile_with_default_currency(self):
+        self.auth_as(self.make_admin())
+
+        response = self.client.post("/api/wallets/profiles/", {
+            "name": "Standard",
+            "max_balance": "1000000", "max_transfer_amount": "500000",
+            "max_daily_transfer_total": "1000000", "max_deposit_amount": "500000",
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["currency"], "EUR")
+
+    def test_agent_cannot_create_profile(self):
+        self.auth_as(self.make_agent())
+
+        response = self.client.post("/api/wallets/profiles/", {
+            "name": "Standard", "max_balance": "1000000", "max_transfer_amount": "500000",
+            "max_daily_transfer_total": "1000000", "max_deposit_amount": "500000",
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_any_authenticated_user_can_list_profiles(self):
+        self.make_wallet_profile()
+        self.auth_as(self.make_agent())
+
+        response = self.client.get("/api/wallets/profiles/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+
+
+class WalletDetailBalanceTests(BaseAPITestCase):
+    def setUp(self):
+        self.agent = self.make_agent()
+        self.profile = self.make_wallet_profile(currency="USD")
+        self.owner, _, self.wallet = self.make_customer("owner", self.profile)
+        self.other, _, _ = self.make_customer("other", self.profile)
+
+    def test_owner_can_view_wallet_detail_with_nested_profile(self):
+        self.auth_as(self.owner)
+        response = self.client.get(f"/api/wallets/{self.wallet.id}/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["profile"]["currency"], "USD")
+        self.assertNotIn("currency", response.data)  # only inside "profile" now, not top-level
+
+    def test_agent_can_view_any_wallet(self):
+        self.auth_as(self.agent)
+        response = self.client.get(f"/api/wallets/{self.wallet.id}/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_other_customer_cannot_view_wallet(self):
+        self.auth_as(self.other)
+        response = self.client.get(f"/api/wallets/{self.wallet.id}/")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_balance_endpoint_is_flat(self):
+        self.auth_as(self.owner)
+        response = self.client.get(f"/api/wallets/{self.wallet.id}/balance/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["currency"], "USD")
+        self.assertEqual(Decimal(str(response.data["balance"])), Decimal("0"))
+
+    def test_invalid_id_returns_400_not_404(self):
+        self.auth_as(self.owner)
+        response = self.client.get("/api/wallets/garbage/")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_non_hyphenated_uuid_still_resolves(self):
+        self.auth_as(self.owner)
+        compact_id = str(self.wallet.id).replace("-", "")
+        response = self.client.get(f"/api/wallets/{compact_id}/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+
+class DepositTests(BaseAPITestCase):
+    def setUp(self):
+        self.agent = self.make_agent()
+        self.profile = self.make_wallet_profile()
+        self.owner, _, self.wallet = self.make_customer("owner", self.profile)
+
+    def test_agent_can_deposit(self):
+        self.auth_as(self.agent)
+        response = self.client.post(f"/api/wallets/{self.wallet.id}/deposits/", {"amount": "100.00"})
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(response.data["reference"].startswith("DEP-"))
+        self.assertEqual(response.data["currency"], "EUR")
+
+        self.wallet.refresh_from_db()
+        self.assertEqual(self.wallet.balance, Decimal("100.00"))
+
+    def test_customer_cannot_deposit(self):
+        self.auth_as(self.owner)
+        response = self.client.post(f"/api/wallets/{self.wallet.id}/deposits/", {"amount": "100.00"})
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_exceeds_max_deposit_amount_rejected(self):
+        self.auth_as(self.agent)
+        response = self.client.post(f"/api/wallets/{self.wallet.id}/deposits/", {"amount": "999999999"})
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_only_owner_can_view_deposit_history_not_agent(self):
+        from wallets.services import do_deposit
+        do_deposit(self.wallet, Decimal("50.00"), self.agent)
+
+        self.auth_as(self.owner)
+        response = self.client.get(f"/api/wallets/{self.wallet.id}/deposits/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+
+        self.auth_as(self.agent)
+        response = self.client.get(f"/api/wallets/{self.wallet.id}/deposits/")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_amount_filter(self):
+        from wallets.services import do_deposit
+        do_deposit(self.wallet, Decimal("50.00"), self.agent)
+        do_deposit(self.wallet, Decimal("500.00"), self.agent)
+
+        self.auth_as(self.owner)
+        response = self.client.get(f"/api/wallets/{self.wallet.id}/deposits/?min_amount=100")
+
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(Decimal(str(response.data[0]["amount"])), Decimal("500.00"))
+
+
+class TransferTests(BaseAPITestCase):
+    def setUp(self):
+        self.agent = self.make_agent()
+        self.eur_profile = self.make_wallet_profile(name="EUR Standard", currency="EUR")
+        self.usd_profile = self.make_wallet_profile(name="USD Standard", currency="USD")
+        self.sender, _, self.sender_wallet = self.make_customer("sender", self.eur_profile)
+        self.recipient, _, self.recipient_wallet = self.make_customer("recipient", self.eur_profile)
+        self.usd_customer, _, self.usd_wallet = self.make_customer("usder", self.usd_profile)
+
+        from wallets.services import do_deposit
+        do_deposit(self.sender_wallet, Decimal("200.00"), self.agent)
+
+        self.auth_as(self.sender)
+
+    def test_successful_transfer(self):
+        response = self.client.post(
+            f"/api/wallets/{self.sender_wallet.id}/transfers/",
+            {"to_tag": self.recipient_wallet.tag, "amount": "50.00"},
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(response.data["reference"].startswith("TRF-"))
+        # response.data holds the pre-render Python objects (test client bypasses the
+        # JSON renderer), so this is a real uuid.UUID here, not a string yet.
+        self.assertEqual(response.data["performed_by"]["user_id"], self.sender.id)
+        self.assertEqual(response.data["performed_by"]["type"], "CLIENT")
+
+        self.sender_wallet.refresh_from_db()
+        self.recipient_wallet.refresh_from_db()
+        self.assertEqual(self.sender_wallet.balance, Decimal("150.00"))
+        self.assertEqual(self.recipient_wallet.balance, Decimal("50.00"))
+
+    def test_insufficient_balance_rejected(self):
+        response = self.client.post(
+            f"/api/wallets/{self.sender_wallet.id}/transfers/",
+            {"to_tag": self.recipient_wallet.tag, "amount": "999.00"},
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_currency_mismatch_rejected(self):
+        response = self.client.post(
+            f"/api/wallets/{self.sender_wallet.id}/transfers/",
+            {"to_tag": self.usd_wallet.tag, "amount": "10.00"},
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_cannot_transfer_to_self(self):
+        response = self.client.post(
+            f"/api/wallets/{self.sender_wallet.id}/transfers/",
+            {"to_tag": self.sender_wallet.tag, "amount": "10.00"},
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_cannot_transfer_to_merchant_tag(self):
+        merchant = self.make_merchant("ElectricCo", self.agent, self.eur_profile)
+        response = self.client.post(
+            f"/api/wallets/{self.sender_wallet.id}/transfers/",
+            {"to_tag": merchant.wallet.tag, "amount": "10.00"},
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_direction_labels_on_both_sides(self):
+        self.client.post(
+            f"/api/wallets/{self.sender_wallet.id}/transfers/",
+            {"to_tag": self.recipient_wallet.tag, "amount": "50.00"},
+        )
+
+        response = self.client.get(f"/api/wallets/{self.sender_wallet.id}/transfers/")
+        self.assertEqual(response.data[0]["direction"], "DEBIT")
+
+        self.auth_as(self.recipient)
+        response = self.client.get(f"/api/wallets/{self.recipient_wallet.id}/transfers/")
+        self.assertEqual(response.data[0]["direction"], "CREDIT")
+
+    def test_agent_can_view_but_not_initiate(self):
+        self.auth_as(self.agent)
+
+        response = self.client.get(f"/api/wallets/{self.sender_wallet.id}/transfers/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        response = self.client.post(
+            f"/api/wallets/{self.sender_wallet.id}/transfers/",
+            {"to_tag": self.recipient_wallet.tag, "amount": "10.00"},
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+
+class PaymentTests(BaseAPITestCase):
+    def setUp(self):
+        self.agent = self.make_agent()
+        self.profile = self.make_wallet_profile()
+        self.payer, _, self.payer_wallet = self.make_customer("payer", self.profile)
+        self.merchant = self.make_merchant("WaterCo", self.agent, self.profile)
+
+        from wallets.services import do_deposit
+        do_deposit(self.payer_wallet, Decimal("100.00"), self.agent)
+
+        self.auth_as(self.payer)
+
+    def test_successful_payment(self):
+        response = self.client.post(
+            f"/api/wallets/{self.payer_wallet.id}/payments/",
+            {"merchant_tag": self.merchant.wallet.tag, "amount": "40.00"},
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["status"], "COMPLETED")
+        self.assertEqual(response.data["failure_reason"], "")
+
+        self.payer_wallet.refresh_from_db()
+        self.assertEqual(self.payer_wallet.balance, Decimal("60.00"))
+
+    def test_insufficient_balance_is_declined_not_rejected(self):
+        response = self.client.post(
+            f"/api/wallets/{self.payer_wallet.id}/payments/",
+            {"merchant_tag": self.merchant.wallet.tag, "amount": "500.00"},
+        )
+
+        # Key behavior from Topic 4: this is a 201 with a FAILED record, not a 400.
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["status"], "FAILED")
+        self.assertEqual(response.data["failure_reason"], "Insufficient balance.")
+
+        self.payer_wallet.refresh_from_db()
+        self.assertEqual(self.payer_wallet.balance, Decimal("100.00"))  # untouched
+
+    def test_inactive_merchant_is_declined(self):
+        self.merchant.is_active = False
+        self.merchant.save()
+
+        response = self.client.post(
+            f"/api/wallets/{self.payer_wallet.id}/payments/",
+            {"merchant_tag": self.merchant.wallet.tag, "amount": "10.00"},
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["status"], "FAILED")
+        self.assertEqual(response.data["failure_reason"], "This merchant account is not active.")
+
+    def test_unknown_merchant_tag_is_a_400(self):
+        response = self.client.post(
+            f"/api/wallets/{self.payer_wallet.id}/payments/",
+            {"merchant_tag": "no.such.tag", "amount": "10.00"},
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_agent_can_view_payment_history_not_initiate(self):
+        self.auth_as(self.agent)
+
+        response = self.client.get(f"/api/wallets/{self.payer_wallet.id}/payments/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        response = self.client.post(
+            f"/api/wallets/{self.payer_wallet.id}/payments/",
+            {"merchant_tag": self.merchant.wallet.tag, "amount": "10.00"},
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
