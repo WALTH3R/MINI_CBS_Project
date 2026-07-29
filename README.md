@@ -39,6 +39,7 @@ cd cbs
 python manage.py migrate
 python manage.py createsuperuser
 python manage.py runserver
+npx ng serve
 ```
 
 The API is now at `http://127.0.0.1:8000/`.
