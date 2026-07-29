@@ -5,8 +5,15 @@ from wallets.models import Wallet
 
 
 class Merchant(models.Model):
+    class Category(models.TextChoices):
+        UTILITIES = "UTILITIES", "Utilities"
+        TELECOM = "TELECOM", "Telecom & Internet"
+        TV = "TV", "Television"
+        OTHER = "OTHER", "Other"
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=100)
+    category = models.CharField(max_length=10, choices=Category.choices, default=Category.OTHER)
     owner = models.ForeignKey("accounts.User", on_delete=models.PROTECT, related_name="merchants")
     wallet = models.OneToOneField(Wallet, on_delete=models.PROTECT, related_name="merchant")
     is_active = models.BooleanField(default=True)

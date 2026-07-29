@@ -1,0 +1,134 @@
+<header class="mb-8">
+  <h1 class="text-headline-md text-on-surface">Transaction Reporting</h1>
+  <p class="mt-1 text-body-md text-on-surface-variant">Look up a customer's full transaction history and summary statistics.</p>
+</header>
+
+<div class="mb-6 rounded-xl bg-white p-card-padding card-shadow">
+  <h3 class="mb-4 text-headline-sm text-on-surface">Find a customer</h3>
+  <div class="relative max-w-md">
+    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+    <input
+      type="text"
+      [value]="searchTerm()"
+      (input)="onSearchInput($any($event.target).value)"
+      placeholder="Search by name, username, or tag"
+      class="w-full rounded-xl border-none bg-surface-container-low py-3 pl-10 pr-4 text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/30"
+    />
+  </div>
+  @if (searchResults().length > 0) {
+    <ul class="mt-3 flex max-w-md flex-col gap-1">
+      @for (customer of searchResults(); track customer.id) {
+        <li>
+          <button (click)="selectCustomer(customer)" class="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-surface-container-low">
+            <p class="text-body-md font-semibold text-on-surface">{{ customer.first_name }} {{ customer.name }}</p>
+            <p class="text-label-md text-on-surface-variant">{{ customer.tag }}</p>
+          </button>
+        </li>
+      }
+    </ul>
+  }
+</div>
+
+@if (selectedCustomer(); as customer) {
+  <p class="mb-4 text-body-md text-on-surface-variant">
+    Showing report for <span class="font-semibold text-on-surface">{{ customer.first_name }} {{ customer.name }}</span> ({{ customer.tag }})
+  </p>
+
+  @if (stats(); as s) {
+    <div class="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div class="rounded-xl bg-white p-card-padding card-shadow">
+        <p class="text-label-md text-on-surface-variant">Total deposited</p>
+        <p class="mt-1 text-headline-md text-tertiary">{{ s.total_deposited | currencyAmount }}</p>
+      </div>
+      <div class="rounded-xl bg-white p-card-padding card-shadow">
+        <p class="text-label-md text-on-surface-variant">Total transferred</p>
+        <p class="mt-1 text-headline-md text-on-surface">{{ s.total_transferred | currencyAmount }}</p>
+      </div>
+      <div class="rounded-xl bg-white p-card-padding card-shadow">
+        <p class="text-label-md text-on-surface-variant">Total paid in bills</p>
+        <p class="mt-1 text-headline-md text-error">{{ s.total_paid_bills | currencyAmount }}</p>
+      </div>
+      <div class="rounded-xl bg-white p-card-padding card-shadow">
+        <p class="text-label-md text-on-surface-variant">Total transactions</p>
+        <p class="mt-1 text-headline-md text-on-surface">{{ s.total_transactions }}</p>
+      </div>
+    </div>
+  }
+
+  <div class="rounded-xl bg-white p-card-padding card-shadow">
+    <div class="mb-4 flex flex-wrap items-end gap-3">
+      <div>
+        <label class="mb-1.5 block text-label-md text-on-surface-variant">Type</label>
+        <select [ngModel]="typeFilter()" (ngModelChange)="typeFilter.set($event)" class="rounded-lg border-none bg-surface-container-low px-3 py-2 text-body-md focus:outline-none focus:ring-2 focus:ring-primary/30">
+          <option value="">All</option>
+          <option value="DEPOSIT">Deposit</option>
+          <option value="TRANSFER">Transfer</option>
+          <option value="PAYMENT">Payment</option>
+        </select>
+      </div>
+      <div>
+        <label class="mb-1.5 block text-label-md text-on-surface-variant">Status</label>
+        <select [ngModel]="statusFilter()" (ngModelChange)="statusFilter.set($event)" class="rounded-lg border-none bg-surface-container-low px-3 py-2 text-body-md focus:outline-none focus:ring-2 focus:ring-primary/30">
+          <option value="">All</option>
+          <option value="COMPLETED">Completed</option>
+          <option value="PENDING">Pending</option>
+          <option value="FAILED">Failed</option>
+        </select>
+      </div>
+      <div>
+        <label class="mb-1.5 block text-label-md text-on-surface-variant">From</label>
+        <input type="date" [value]="dateFrom()" (input)="dateFrom.set($any($event.target).value)" class="rounded-lg border-none bg-surface-container-low px-3 py-2 text-body-md focus:outline-none focus:ring-2 focus:ring-primary/30" />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-label-md text-on-surface-variant">To</label>
+        <input type="date" [value]="dateTo()" (input)="dateTo.set($any($event.target).value)" class="rounded-lg border-none bg-surface-container-low px-3 py-2 text-body-md focus:outline-none focus:ring-2 focus:ring-primary/30" />
+      </div>
+      <button (click)="applyFilters()" class="rounded-lg bg-primary px-5 py-2 text-body-md font-bold text-white">Apply</button>
+    </div>
+
+    @if (error()) {
+      <p class="text-body-md text-error">{{ error() }}</p>
+    }
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-left">
+        <thead>
+          <tr class="border-b border-outline-variant text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">
+            <th class="pb-3">Date</th>
+            <th class="pb-3">Reference</th>
+            <th class="pb-3">Type</th>
+            <th class="pb-3">From</th>
+            <th class="pb-3">To</th>
+            <th class="pb-3">Status</th>
+            <th class="pb-3 text-right">Amount</th>
+          </tr>
+        </thead>
+        <tbody class="text-body-md">
+          @for (entry of entries(); track entry.id) {
+            <tr class="border-b border-surface-container-low">
+              <td class="py-4 font-tabular-nums">{{ entry.created_at | date:'d MMM y, HH:mm' }}</td>
+              <td class="py-4">{{ entry.reference }}</td>
+              <td class="py-4 text-on-surface-variant">{{ entry.type }}</td>
+              <td class="py-4 text-on-surface-variant">{{ entry.from_wallet ?? '—' }}</td>
+              <td class="py-4 text-on-surface-variant">{{ entry.to_wallet }}</td>
+              <td class="py-4">
+                <app-status-badge [status]="entry.status" />
+                @if (entry.status === 'FAILED') {
+                  <p class="mt-1 text-label-md text-on-surface-variant">{{ entry.failure_reason }}</p>
+                }
+              </td>
+              <td class="py-4 text-right font-bold text-on-surface">{{ entry.amount | currencyAmount }}</td>
+            </tr>
+          } @empty {
+            <tr><td colspan="7" class="py-8 text-center text-on-surface-variant">{{ loading() ? 'Loading…' : 'No transactions found.' }}</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+} @else {
+  <div class="flex flex-col items-center justify-center rounded-xl bg-white py-16 text-center card-shadow">
+    <span class="material-symbols-outlined text-4xl text-outline">person_search</span>
+    <p class="mt-2 text-body-md text-on-surface-variant">Search for a customer to view their report.</p>
+  </div>
+}

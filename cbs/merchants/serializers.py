@@ -16,7 +16,7 @@ class MerchantSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Merchant
-        fields = ["id", "name", "owner", "wallet_tag", "is_active", "created_at"]
+        fields = ["id", "name", "category", "owner", "wallet_tag", "is_active", "created_at"]
         read_only_fields = fields
 
 
@@ -27,7 +27,7 @@ class MerchantCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Merchant
-        fields = ["id", "name", "owner", "wallet_profile_id", "tag"]
+        fields = ["id", "name", "category", "owner", "wallet_profile_id", "tag"]
         read_only_fields = ["id"]
 
     def create(self, validated_data):
@@ -41,7 +41,7 @@ class MerchantCreateSerializer(serializers.ModelSerializer):
 class MerchantUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Merchant
-        fields = ["name", "is_active"]
+        fields = ["name", "category", "is_active"]
 
 
 class MerchantPaymentSerializer(serializers.ModelSerializer):

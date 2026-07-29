@@ -1,10 +1,11 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import { Observable, map, tap } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import { AccessTokenClaims, CurrentUser, TokenPair } from '../models/user.model';
 import { decodeJwtPayload, isTokenExpired } from './jwt.util';
+import { MyWalletStore } from './my-wallet.store';
 
 const ACCESS_TOKEN_KEY = 'mini_cbs_access_token';
 const REFRESH_TOKEN_KEY = 'mini_cbs_refresh_token';
@@ -30,10 +31,13 @@ export class AuthService {
   readonly isCustomer = computed(() => this.currentUserSignal()?.role === 'CLIENT');
   readonly isAdmin = computed(() => this.currentUserSignal()?.isStaff === true);
 
+  private readonly myWallet = inject(MyWalletStore);
+
   constructor(private readonly http: HttpClient) {}
 
   /** Logs in and returns the decoded user. Throws (via the observable) on invalid credentials. */
   login(username: string, password: string): Observable<CurrentUser> {
+    this.myWallet.clear(); // a different user may be logging in over an existing session
     return this.http.post<TokenPair>(`${environment.apiBaseUrl}/api/token/`, { username, password }).pipe(
       tap((tokens) => this.storeTokens(tokens)),
       map((tokens) => {
@@ -51,6 +55,7 @@ export class AuthService {
     localStorage.removeItem(ACCESS_TOKEN_KEY);
     localStorage.removeItem(REFRESH_TOKEN_KEY);
     this.currentUserSignal.set(null);
+    this.myWallet.clear();
   }
 
   /** Used by the auth interceptor to silently renew an expired access token. */

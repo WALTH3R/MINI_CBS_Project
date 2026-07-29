@@ -1,0 +1,195 @@
+<header class="mb-8">
+  <h1 class="text-headline-md text-on-surface">Bill Payments</h1>
+  <p class="mt-1 text-body-md text-on-surface-variant">
+    @if (auth.isAgent()) {
+      Browse registered service providers and review a customer's bill payments.
+    } @else {
+      Pay a registered service provider directly from your wallet.
+    }
+  </p>
+</header>
+
+@if (auth.isAgent()) {
+  <div class="mb-6 rounded-xl bg-white p-card-padding card-shadow">
+    <h3 class="mb-4 text-headline-sm text-on-surface">Find a customer</h3>
+    <div class="relative max-w-md">
+      <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+      <input
+        type="text"
+        [value]="searchTerm()"
+        (input)="onSearchInput($any($event.target).value)"
+        placeholder="Search by name, username, or tag"
+        class="w-full rounded-xl border-none bg-surface-container-low py-3 pl-10 pr-4 text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/30"
+      />
+    </div>
+    @if (searchResults().length > 0) {
+      <ul class="mt-3 flex max-w-md flex-col gap-1">
+        @for (customer of searchResults(); track customer.id) {
+          <li>
+            <button (click)="selectCustomer(customer)" class="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-surface-container-low">
+              <p class="text-body-md font-semibold text-on-surface">{{ customer.first_name }} {{ customer.name }}</p>
+              <p class="text-label-md text-on-surface-variant">{{ customer.tag }}</p>
+            </button>
+          </li>
+        }
+      </ul>
+    }
+    @if (selectedCustomer(); as customer) {
+      <p class="mt-4 text-body-md text-on-surface-variant">
+        Showing payments for <span class="font-semibold text-on-surface">{{ customer.first_name }} {{ customer.name }}</span>
+      </p>
+    }
+  </div>
+}
+
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+  <!-- Providers -->
+  <div class="rounded-xl bg-white p-card-padding card-shadow lg:col-span-2">
+    <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+      <h3 class="text-headline-sm text-on-surface">Service providers</h3>
+      <div class="flex flex-wrap items-center gap-2 rounded-full bg-surface-container-high p-1">
+        <button (click)="categoryFilter.set('')" class="rounded-full px-3 py-1.5 text-label-md" [class.bg-primary]="categoryFilter() === ''" [class.text-white]="categoryFilter() === ''" [class.text-on-surface-variant]="categoryFilter() !== ''">All</button>
+        <button (click)="categoryFilter.set('UTILITIES')" class="rounded-full px-3 py-1.5 text-label-md" [class.bg-primary]="categoryFilter() === 'UTILITIES'" [class.text-white]="categoryFilter() === 'UTILITIES'" [class.text-on-surface-variant]="categoryFilter() !== 'UTILITIES'">Utilities</button>
+        <button (click)="categoryFilter.set('TELECOM')" class="rounded-full px-3 py-1.5 text-label-md" [class.bg-primary]="categoryFilter() === 'TELECOM'" [class.text-white]="categoryFilter() === 'TELECOM'" [class.text-on-surface-variant]="categoryFilter() !== 'TELECOM'">Telecom</button>
+        <button (click)="categoryFilter.set('TV')" class="rounded-full px-3 py-1.5 text-label-md" [class.bg-primary]="categoryFilter() === 'TV'" [class.text-white]="categoryFilter() === 'TV'" [class.text-on-surface-variant]="categoryFilter() !== 'TV'">TV</button>
+        <button (click)="categoryFilter.set('OTHER')" class="rounded-full px-3 py-1.5 text-label-md" [class.bg-primary]="categoryFilter() === 'OTHER'" [class.text-white]="categoryFilter() === 'OTHER'" [class.text-on-surface-variant]="categoryFilter() !== 'OTHER'">Other</button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      @for (merchant of visibleMerchants(); track merchant.id) {
+        <button
+          (click)="auth.isCustomer() && selectMerchant(merchant)"
+          class="flex items-center gap-3 rounded-xl border p-4 text-left transition-colors"
+          [class.border-primary]="selectedMerchant()?.id === merchant.id"
+          [class.bg-surface-container-low]="selectedMerchant()?.id === merchant.id"
+          [class.border-outline-variant]="selectedMerchant()?.id !== merchant.id"
+        >
+          <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-surface-container-low text-primary">
+            <span class="material-symbols-outlined">
+              {{ merchant.category === 'UTILITIES' ? 'bolt' : merchant.category === 'TELECOM' ? 'wifi' : merchant.category === 'TV' ? 'tv' : 'storefront' }}
+            </span>
+          </div>
+          <div>
+            <p class="text-body-md font-semibold text-on-surface">{{ merchant.name }}</p>
+            <p class="text-label-md text-on-surface-variant">{{ categoryLabel(merchant.category) }}</p>
+          </div>
+        </button>
+      } @empty {
+        <p class="text-body-md text-on-surface-variant">{{ merchantsLoading() ? 'Loading providers…' : 'No providers in this category.' }}</p>
+      }
+    </div>
+  </div>
+
+  <!-- Pay -->
+  @if (auth.isCustomer()) {
+    <div class="rounded-xl bg-white p-card-padding card-shadow">
+      <h3 class="mb-4 text-headline-sm text-on-surface">Pay a bill</h3>
+
+      @if (!selectedMerchant()) {
+        <div class="flex flex-col items-center justify-center py-8 text-center">
+          <span class="material-symbols-outlined text-4xl text-outline">storefront</span>
+          <p class="mt-2 text-body-md text-on-surface-variant">Select a provider to pay</p>
+        </div>
+      } @else {
+        <p class="text-body-md font-semibold text-on-surface">{{ selectedMerchant()!.name }}</p>
+        <p class="text-label-md text-on-surface-variant">{{ selectedMerchant()!.wallet_tag }}</p>
+
+        @if (lastPayment(); as payment) {
+          @if (payment.status === 'COMPLETED') {
+            <div class="mt-4 flex items-start gap-2 rounded-lg border border-tertiary/20 bg-tertiary-fixed-dim/10 px-4 py-3">
+              <span class="material-symbols-outlined text-tertiary">check_circle</span>
+              <div>
+                <p class="text-body-md font-semibold text-on-surface">Payment successful</p>
+                <p class="text-label-md text-on-surface-variant">{{ payment.reference }}</p>
+              </div>
+            </div>
+          } @else {
+            <div class="mt-4 flex items-start gap-2 rounded-lg border border-secondary/20 bg-secondary-container/40 px-4 py-3">
+              <span class="material-symbols-outlined text-on-secondary-container">warning</span>
+              <div>
+                <p class="text-body-md font-semibold text-on-surface">Payment declined</p>
+                <p class="text-label-md text-on-surface-variant">{{ payment.failure_reason }}</p>
+              </div>
+            </div>
+          }
+        }
+
+        @if (submitError()) {
+          <div class="mt-4 flex items-start gap-2 rounded-lg border border-error/20 bg-error-container px-4 py-3">
+            <span class="material-symbols-outlined text-on-error-container">error</span>
+            <p class="text-body-md text-on-error-container">{{ submitError() }}</p>
+          </div>
+        }
+
+        <div class="mt-4">
+          <label class="mb-1.5 block text-label-md text-on-surface-variant">Amount</label>
+          <input
+            type="number" min="0.01" step="0.01"
+            [value]="amount()"
+            (input)="amount.set($any($event.target).value)"
+            placeholder="0.00"
+            class="w-full rounded-xl border-none bg-surface-container-low px-4 py-3 text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/30"
+          />
+        </div>
+
+        <button
+          (click)="submitPayment()"
+          [disabled]="submitting() || !amount()"
+          class="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-body-md font-bold text-white disabled:opacity-60"
+        >
+          @if (submitting()) {
+            <span class="material-symbols-outlined animate-spin text-lg">progress_activity</span>
+            Processing…
+          } @else {
+            Pay now
+          }
+        </button>
+      }
+    </div>
+  }
+</div>
+
+<div class="mt-6 rounded-xl bg-white p-card-padding card-shadow">
+  <h3 class="mb-4 text-headline-sm text-on-surface">Payment history</h3>
+
+  @if (historyError()) {
+    <p class="text-body-md text-error">{{ historyError() }}</p>
+  }
+
+  <div class="overflow-x-auto">
+    <table class="w-full text-left">
+      <thead>
+        <tr class="border-b border-outline-variant text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">
+          <th class="pb-3">Date</th>
+          <th class="pb-3">Reference</th>
+          <th class="pb-3">Provider</th>
+          <th class="pb-3">Status</th>
+          <th class="pb-3 text-right">Amount</th>
+        </tr>
+      </thead>
+      <tbody class="text-body-md">
+        @for (payment of history(); track payment.id) {
+          <tr class="border-b border-surface-container-low">
+            <td class="py-4 font-tabular-nums">{{ payment.created_at | date:'d MMM y, HH:mm' }}</td>
+            <td class="py-4">{{ payment.reference }}</td>
+            <td class="py-4 text-on-surface-variant">{{ payment.merchant }}</td>
+            <td class="py-4">
+              <app-status-badge [status]="payment.status" />
+              @if (payment.status === 'FAILED') {
+                <p class="mt-1 text-label-md text-on-surface-variant">{{ payment.failure_reason }}</p>
+              }
+            </td>
+            <td class="py-4 text-right font-bold" [class.text-error]="payment.status === 'COMPLETED'" [class.text-on-surface-variant]="payment.status === 'FAILED'">
+              {{ payment.amount }}
+            </td>
+          </tr>
+        } @empty {
+          <tr><td colspan="5" class="py-8 text-center text-on-surface-variant">
+            {{ historyLoading() ? 'Loading…' : (auth.isAgent() && !selectedCustomer() ? 'Search for a customer above.' : 'No payments yet.') }}
+          </td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>

@@ -2,7 +2,7 @@ from decimal import Decimal
 
 from django.db.models import Q, Sum
 from merchants.models import Transaction
-from rest_framework.generics import CreateAPIView, ListAPIView, RetrieveAPIView
+from rest_framework.generics import CreateAPIView, ListAPIView, ListCreateAPIView, RetrieveAPIView
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -22,9 +22,25 @@ class RoleTokenObtainPairView(TokenObtainPairView):
     serializer_class = RoleTokenObtainPairSerializer
 
 
-class CustomerCreateView(CreateAPIView):
-    serializer_class = CustomerCreateSerializer
+class CustomerListCreateView(ListCreateAPIView):
+    """List/search is how an agent finds a customer to act on (e.g. deposit); create registers a new one."""
     permission_classes = [IsAgent]
+
+    def get_serializer_class(self):
+        return CustomerCreateSerializer if self.request.method == "POST" else CustomerProfileSerializer
+
+    def get_queryset(self):
+        qs = CustomerProfile.objects.select_related("user").order_by("-created_at")
+        search = self.request.query_params.get("search")
+        if search:
+            qs = qs.filter(
+                Q(user__username__icontains=search)
+                | Q(user__first_name__icontains=search)
+                | Q(user__last_name__icontains=search)
+                | Q(tag__icontains=search)
+                | Q(national_id_number__icontains=search)
+            )
+        return qs
 
 
 class CustomerDetailView(ValidatedUUIDLookupMixin, RetrieveAPIView):

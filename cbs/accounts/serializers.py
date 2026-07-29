@@ -14,15 +14,27 @@ class CustomerProfileSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source="user.username", read_only=True)
     name = serializers.CharField(source="user.last_name", read_only=True)
     first_name = serializers.CharField(source="user.first_name", read_only=True)
+    wallet = serializers.SerializerMethodField()
 
     class Meta:
         model = CustomerProfile
         fields = [
             "id", "username", "name", "first_name", "parent_name",
             "date_of_birth", "marital_status", "place_of_birth",
-            "national_id_number", "tag", "created_at",
+            "national_id_number", "tag", "wallet", "created_at",
         ]
         read_only_fields = fields
+
+    def get_wallet(self, obj):
+        wallet = obj.user.wallets.select_related("profile").first()
+        if wallet is None:
+            return None
+        return {
+            "id": str(wallet.id),
+            "tag": wallet.tag,
+            "balance": str(wallet.balance),
+            "currency": wallet.profile.currency,
+        }
 
 
 class CustomerCreateSerializer(serializers.ModelSerializer):

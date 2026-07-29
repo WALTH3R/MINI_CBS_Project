@@ -1,0 +1,152 @@
+<header class="mb-8">
+  <h1 class="text-headline-md text-on-surface">Transfers</h1>
+  <p class="mt-1 text-body-md text-on-surface-variant">
+    @if (auth.isAgent()) {
+      Look up a customer to review their transfer activity.
+    } @else {
+      Send money to another NovaBank customer by their tag.
+    }
+  </p>
+</header>
+
+@if (auth.isAgent()) {
+  <div class="mb-6 rounded-xl bg-white p-card-padding card-shadow">
+    <h3 class="mb-4 text-headline-sm text-on-surface">Find a customer</h3>
+    <div class="relative max-w-md">
+      <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+      <input
+        type="text"
+        [value]="searchTerm()"
+        (input)="onSearchInput($any($event.target).value)"
+        placeholder="Search by name, username, or tag"
+        class="w-full rounded-xl border-none bg-surface-container-low py-3 pl-10 pr-4 text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/30"
+      />
+    </div>
+    @if (searchResults().length > 0) {
+      <ul class="mt-3 flex max-w-md flex-col gap-1">
+        @for (customer of searchResults(); track customer.id) {
+          <li>
+            <button (click)="selectCustomer(customer)" class="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-surface-container-low">
+              <div>
+                <p class="text-body-md font-semibold text-on-surface">{{ customer.first_name }} {{ customer.name }}</p>
+                <p class="text-label-md text-on-surface-variant">{{ customer.tag }}</p>
+              </div>
+            </button>
+          </li>
+        }
+      </ul>
+    }
+    @if (selectedCustomer(); as customer) {
+      <p class="mt-4 text-body-md text-on-surface-variant">
+        Showing transfers for <span class="font-semibold text-on-surface">{{ customer.first_name }} {{ customer.name }}</span> ({{ customer.tag }})
+      </p>
+    }
+  </div>
+}
+
+@if (auth.isCustomer()) {
+  <div class="mb-6 rounded-xl bg-white p-card-padding card-shadow">
+    <h3 class="mb-4 text-headline-sm text-on-surface">Send money</h3>
+
+    @if (lastTransfer(); as transfer) {
+      <div class="mb-4 flex items-start gap-2 rounded-lg border border-tertiary/20 bg-tertiary-fixed-dim/10 px-4 py-3">
+        <span class="material-symbols-outlined text-tertiary">check_circle</span>
+        <div>
+          <p class="text-body-md font-semibold text-on-surface">Transfer sent</p>
+          <p class="text-label-md text-on-surface-variant">{{ transfer.reference }} · {{ transfer.amount }} {{ transfer.currency }} to {{ transfer.to_wallet }}</p>
+        </div>
+      </div>
+    }
+
+    @if (submitError()) {
+      <div class="mb-4 flex items-start gap-2 rounded-lg border border-error/20 bg-error-container px-4 py-3">
+        <span class="material-symbols-outlined text-on-error-container">error</span>
+        <p class="text-body-md text-on-error-container">{{ submitError() }}</p>
+      </div>
+    }
+
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-[2fr_1fr_auto] sm:items-end">
+      <div>
+        <label class="mb-1.5 block text-label-md text-on-surface-variant">Recipient's tag</label>
+        <input
+          type="text"
+          [value]="toTag()"
+          (input)="toTag.set($any($event.target).value)"
+          placeholder="e.g. jsmith.7734"
+          class="w-full rounded-xl border-none bg-surface-container-low px-4 py-3 text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/30"
+        />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-label-md text-on-surface-variant">Amount</label>
+        <input
+          type="number" min="0.01" step="0.01"
+          [value]="amount()"
+          (input)="amount.set($any($event.target).value)"
+          placeholder="0.00"
+          class="w-full rounded-xl border-none bg-surface-container-low px-4 py-3 text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/30"
+        />
+      </div>
+      <button
+        (click)="submitTransfer()"
+        [disabled]="submitting() || !toTag() || !amount()"
+        class="flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-body-md font-bold text-white disabled:opacity-60"
+      >
+        @if (submitting()) {
+          <span class="material-symbols-outlined animate-spin text-lg">progress_activity</span>
+        } @else {
+          <span class="material-symbols-outlined text-lg">send</span>
+        }
+        Send
+      </button>
+    </div>
+    @if (myWallet.wallet(); as wallet) {
+      <p class="mt-3 text-label-md text-on-surface-variant">Your balance: {{ wallet.balance }} {{ wallet.profile.currency }} — transfers only work between wallets of the same currency.</p>
+    }
+  </div>
+}
+
+<div class="rounded-xl bg-white p-card-padding card-shadow">
+  <div class="mb-4 flex items-center justify-between">
+    <h3 class="text-headline-sm text-on-surface">History</h3>
+    <div class="flex items-center gap-2 rounded-full bg-surface-container-high p-1">
+      <button (click)="directionFilter.set(''); applyFilters()" class="rounded-full px-4 py-1.5 text-label-md" [class.bg-primary]="directionFilter() === ''" [class.text-white]="directionFilter() === ''" [class.text-on-surface-variant]="directionFilter() !== ''">All</button>
+      <button (click)="directionFilter.set('CREDIT'); applyFilters()" class="rounded-full px-4 py-1.5 text-label-md" [class.bg-primary]="directionFilter() === 'CREDIT'" [class.text-white]="directionFilter() === 'CREDIT'" [class.text-on-surface-variant]="directionFilter() !== 'CREDIT'">Received</button>
+      <button (click)="directionFilter.set('DEBIT'); applyFilters()" class="rounded-full px-4 py-1.5 text-label-md" [class.bg-primary]="directionFilter() === 'DEBIT'" [class.text-white]="directionFilter() === 'DEBIT'" [class.text-on-surface-variant]="directionFilter() !== 'DEBIT'">Sent</button>
+    </div>
+  </div>
+
+  @if (historyError()) {
+    <p class="text-body-md text-error">{{ historyError() }}</p>
+  }
+
+  <div class="overflow-x-auto">
+    <table class="w-full text-left">
+      <thead>
+        <tr class="border-b border-outline-variant text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">
+          <th class="pb-3">Date</th>
+          <th class="pb-3">Reference</th>
+          <th class="pb-3">From</th>
+          <th class="pb-3">To</th>
+          <th class="pb-3 text-right">Amount</th>
+        </tr>
+      </thead>
+      <tbody class="text-body-md">
+        @for (t of history(); track t.id) {
+          <tr class="border-b border-surface-container-low">
+            <td class="py-4 font-tabular-nums">{{ t.created_at | date:'d MMM y, HH:mm' }}</td>
+            <td class="py-4">{{ t.reference }}</td>
+            <td class="py-4 text-on-surface-variant">{{ t.from_wallet }}</td>
+            <td class="py-4 text-on-surface-variant">{{ t.to_wallet }}</td>
+            <td class="py-4 text-right font-bold" [class.text-tertiary]="t.direction === 'CREDIT'" [class.text-error]="t.direction === 'DEBIT'">
+              {{ t.direction === 'CREDIT' ? '+' : '-' }}{{ t.amount }} {{ t.currency }}
+            </td>
+          </tr>
+        } @empty {
+          <tr><td colspan="5" class="py-8 text-center text-on-surface-variant">
+            {{ historyLoading() ? 'Loading…' : (auth.isAgent() && !selectedCustomer() ? 'Search for a customer above.' : 'No transfers yet.') }}
+          </td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>

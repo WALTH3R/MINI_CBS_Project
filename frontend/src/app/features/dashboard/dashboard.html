@@ -1,35 +1,171 @@
-<nav class="flex h-20 w-full items-center justify-between border-b border-outline-variant bg-surface-container-lowest px-8">
-  <div class="flex items-center gap-2">
-    <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-white">
-      <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">account_balance</span>
-    </div>
-    <span class="text-[22px] font-bold text-primary">NovaBank</span>
-  </div>
-
-  @if (auth.currentUser(); as user) {
-    <div class="flex items-center gap-4">
-      <div class="text-right">
-        <p class="text-body-md font-semibold text-on-surface">{{ user.username }}</p>
-        <p class="text-label-md text-on-surface-variant">
-          {{ user.isStaff ? 'Admin' : user.role === 'AGENT' ? 'Agent' : 'Customer' }}
-        </p>
-      </div>
-      <button
-        (click)="logout()"
-        class="flex items-center gap-2 rounded-full bg-surface-container-high px-4 py-2 text-label-md text-on-surface-variant transition-colors hover:bg-error-container hover:text-on-error-container"
-      >
-        <span class="material-symbols-outlined text-lg">logout</span>
-        Sign out
-      </button>
-    </div>
-  }
-</nav>
-
-<main class="mx-auto max-w-container-max px-8 py-12">
-  @if (auth.currentUser(); as user) {
-    <h1 class="text-display-lg text-on-surface">Welcome, <span class="text-primary">{{ user.username }}</span></h1>
-    <p class="mt-2 text-body-md text-on-surface-variant">
-      You're signed in as {{ user.isStaff ? 'an admin' : user.role === 'AGENT' ? 'an agent' : 'a customer' }}. The rest of the dashboard is under construction.
+@if (auth.currentUser(); as user) {
+  <header class="mb-8">
+    <h1 class="text-display-lg text-on-surface">Good day, <span class="text-primary">{{ user.username }}</span></h1>
+    <p class="mt-1 text-body-md text-on-surface-variant">
+      @if (auth.isCustomer()) {
+        Here's your wallet at a glance.
+      } @else if (auth.isAgent()) {
+        Manage deposits, look up customers, and review activity.
+      } @else {
+        You're signed in as an administrator.
+      }
     </p>
+  </header>
+
+  <!-- CUSTOMER -->
+  @if (auth.isCustomer()) {
+    @if (loadError()) {
+      <div class="mb-6 rounded-lg border border-error/20 bg-error-container px-4 py-3 text-body-md text-on-error-container">
+        {{ loadError() }}
+      </div>
+    }
+
+    @if (myWallet.wallet(); as wallet) {
+      <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <!-- Wallet summary card (Wallets screen, folded in per scope decision) -->
+        <div class="rounded-xl bg-primary p-card-padding text-white card-shadow lg:col-span-1">
+          <div class="flex items-center justify-between">
+            <span class="text-label-md text-white/70">My Wallet</span>
+            <span class="material-symbols-outlined text-white/70">account_balance_wallet</span>
+          </div>
+          <p class="mt-4 text-display-lg text-white">{{ wallet.balance | currencyAmount:wallet.profile.currency }}</p>
+          <p class="mt-1 text-label-md text-white/70">Tag: {{ wallet.tag }}</p>
+
+          <div class="mt-6 grid grid-cols-2 gap-3 border-t border-white/20 pt-4 text-label-md">
+            <div>
+              <p class="text-white/60">Max transfer</p>
+              <p class="font-bold">{{ wallet.profile.max_transfer_amount | currencyAmount }}</p>
+            </div>
+            <div>
+              <p class="text-white/60">Daily transfer limit</p>
+              <p class="font-bold">{{ wallet.profile.max_daily_transfer_total | currencyAmount }}</p>
+            </div>
+            <div>
+              <p class="text-white/60">Max deposit</p>
+              <p class="font-bold">{{ wallet.profile.max_deposit_amount | currencyAmount }}</p>
+            </div>
+            <div>
+              <p class="text-white/60">Max balance</p>
+              <p class="font-bold">{{ wallet.profile.max_balance | currencyAmount }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick actions -->
+        <div class="rounded-xl bg-white p-card-padding card-shadow lg:col-span-2">
+          <h3 class="text-headline-sm text-on-surface">Quick actions</h3>
+          <div class="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <a routerLink="/transfers" class="flex flex-col items-center gap-2 rounded-xl bg-surface-container-low p-4 text-center transition-colors hover:bg-surface-container">
+              <span class="material-symbols-outlined text-primary">send</span>
+              <span class="text-label-md text-on-surface">Send money</span>
+            </a>
+            <a routerLink="/payments" class="flex flex-col items-center gap-2 rounded-xl bg-surface-container-low p-4 text-center transition-colors hover:bg-surface-container">
+              <span class="material-symbols-outlined text-primary">receipt_long</span>
+              <span class="text-label-md text-on-surface">Pay a bill</span>
+            </a>
+            <a routerLink="/deposits" class="flex flex-col items-center gap-2 rounded-xl bg-surface-container-low p-4 text-center transition-colors hover:bg-surface-container">
+              <span class="material-symbols-outlined text-primary">history</span>
+              <span class="text-label-md text-on-surface">Deposit history</span>
+            </a>
+            <div class="flex flex-col items-center gap-2 rounded-xl bg-surface-container-low p-4 text-center">
+              <span class="material-symbols-outlined text-on-surface-variant">tag</span>
+              <span class="text-label-md text-on-surface-variant">{{ wallet.tag }}</span>
+            </div>
+          </div>
+
+          <div class="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <div>
+              <h4 class="mb-3 text-label-md uppercase tracking-wide text-on-surface-variant">Recent transfers</h4>
+              @if (recentTransfers().length === 0) {
+                <p class="text-body-md text-on-surface-variant">No transfers yet.</p>
+              }
+              <ul class="flex flex-col gap-3">
+                @for (t of recentTransfers(); track t.id) {
+                  <li class="flex items-center justify-between text-body-md">
+                    <div class="flex items-center gap-2">
+                      <span class="material-symbols-outlined text-sm" [class.text-tertiary]="t.direction === 'CREDIT'" [class.text-error]="t.direction === 'DEBIT'">
+                        {{ t.direction === 'CREDIT' ? 'call_received' : 'call_made' }}
+                      </span>
+                      <span class="text-on-surface-variant">{{ t.direction === 'CREDIT' ? t.from_wallet : t.to_wallet }}</span>
+                    </div>
+                    <span class="font-bold" [class.text-tertiary]="t.direction === 'CREDIT'" [class.text-error]="t.direction === 'DEBIT'">
+                      {{ t.direction === 'CREDIT' ? '+' : '-' }}{{ t.amount | currencyAmount:t.currency }}
+                    </span>
+                  </li>
+                }
+              </ul>
+            </div>
+            <div>
+              <h4 class="mb-3 text-label-md uppercase tracking-wide text-on-surface-variant">Recent bill payments</h4>
+              @if (recentPayments().length === 0) {
+                <p class="text-body-md text-on-surface-variant">No payments yet.</p>
+              }
+              <ul class="flex flex-col gap-3">
+                @for (p of recentPayments(); track p.id) {
+                  <li class="flex items-center justify-between text-body-md">
+                    <span class="text-on-surface-variant">{{ p.merchant }}</span>
+                    <div class="flex items-center gap-2">
+                      <span class="font-bold text-error">-{{ p.amount | currencyAmount }}</span>
+                      <app-status-badge [status]="p.status" />
+                    </div>
+                  </li>
+                }
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    } @else if (loading()) {
+      <p class="text-body-md text-on-surface-variant">Loading your wallet…</p>
+    }
   }
-</main>
+
+  <!-- AGENT -->
+  @if (auth.isAgent()) {
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <a routerLink="/deposits" class="flex items-center gap-4 rounded-xl bg-white p-card-padding card-shadow transition-shadow hover:shadow-md">
+        <div class="flex h-11 w-11 items-center justify-center rounded-lg bg-surface-container-low text-primary">
+          <span class="material-symbols-outlined">payments</span>
+        </div>
+        <div>
+          <p class="text-body-md font-semibold text-on-surface">Make a deposit</p>
+          <p class="text-label-md text-on-surface-variant">Find a customer and add funds</p>
+        </div>
+      </a>
+      <a routerLink="/transactions" class="flex items-center gap-4 rounded-xl bg-white p-card-padding card-shadow transition-shadow hover:shadow-md">
+        <div class="flex h-11 w-11 items-center justify-center rounded-lg bg-surface-container-low text-primary">
+          <span class="material-symbols-outlined">bar_chart</span>
+        </div>
+        <div>
+          <p class="text-body-md font-semibold text-on-surface">Reporting</p>
+          <p class="text-label-md text-on-surface-variant">View a customer's full ledger</p>
+        </div>
+      </a>
+      <a routerLink="/transfers" class="flex items-center gap-4 rounded-xl bg-white p-card-padding card-shadow transition-shadow hover:shadow-md">
+        <div class="flex h-11 w-11 items-center justify-center rounded-lg bg-surface-container-low text-primary">
+          <span class="material-symbols-outlined">receipt_long</span>
+        </div>
+        <div>
+          <p class="text-body-md font-semibold text-on-surface">Review activity</p>
+          <p class="text-label-md text-on-surface-variant">Transfers and payments oversight</p>
+        </div>
+      </a>
+    </div>
+  }
+
+  <!-- ADMIN -->
+  @if (auth.isAdmin() && !auth.isAgent() && !auth.isCustomer()) {
+    <div class="rounded-xl bg-white p-card-padding card-shadow">
+      <div class="flex items-start gap-3">
+        <span class="material-symbols-outlined text-primary">admin_panel_settings</span>
+        <div>
+          <p class="text-body-md font-semibold text-on-surface">Admin tools live in Django admin for now</p>
+          <p class="mt-1 text-body-md text-on-surface-variant">
+            Creating agents, wallet profiles, and service providers isn't built into this dashboard yet —
+            use <code class="rounded bg-surface-container-low px-1.5 py-0.5 text-label-md">/admin/</code> in the meantime.
+          </p>
+        </div>
+      </div>
+    </div>
+  }
+}

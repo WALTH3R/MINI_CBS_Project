@@ -19,8 +19,10 @@ Technologies used:
 - Python 3 / Django 5
 - Django REST Framework
 - `djangorestframework-simplejwt` for JWT authentication
-- SQLite
+- PostgreSQL
 - GIT
+- Docker
+- Angular 17
 
 Steps to run the project :
 
@@ -41,6 +43,8 @@ python manage.py runserver
 
 The API is now at `http://127.0.0.1:8000/`.
 
+The Front End runs on 'http://localhost:4200/'. (For the Admin Page, use the Django Admin Panel at)
+
 The Different roles of the Users and steps are :
 
 - Admin : Create a superuser and log in to the admin panel at `/admin/` to create agents, customers, and service providers.
@@ -51,3 +55,8 @@ The Different roles of the Users and steps are :
 You can also browse the API in a browser: log in at `/api-auth/login/`
 
 You can view the API documentation by using the file CBS.swagger.json or by visiting https://vkatz5ow8z.apidog.io
+
+Some Sources :
+
+- For the Front End Design (https://dribbble.com/shots/27075109-NovaBank-Dashboard-Bank-Design) or view the templates in the "stitch_novabank_dashboard" folder
+- For the API Documentation (https://apidog.io/)

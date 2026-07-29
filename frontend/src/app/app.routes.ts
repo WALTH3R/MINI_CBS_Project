@@ -10,9 +10,31 @@ export const routes: Routes = [
     loadComponent: () => import('./features/auth/login/login').then((m) => m.Login),
   },
   {
-    path: 'dashboard',
+    path: '',
     canActivate: [authGuard],
-    loadComponent: () => import('./features/dashboard/dashboard').then((m) => m.Dashboard),
+    loadComponent: () => import('./layout/shell').then((m) => m.Shell),
+    children: [
+      {
+        path: 'dashboard',
+        loadComponent: () => import('./features/dashboard/dashboard').then((m) => m.Dashboard),
+      },
+      {
+        path: 'deposits',
+        loadComponent: () => import('./features/deposits/deposits').then((m) => m.Deposits),
+      },
+      {
+        path: 'transfers',
+        loadComponent: () => import('./features/transfers/transfers').then((m) => m.Transfers),
+      },
+      {
+        path: 'payments',
+        loadComponent: () => import('./features/payments/payments').then((m) => m.Payments),
+      },
+      {
+        path: 'transactions',
+        loadComponent: () => import('./features/transactions/transactions').then((m) => m.Transactions),
+      },
+    ],
   },
   { path: '**', redirectTo: 'login' },
 ];

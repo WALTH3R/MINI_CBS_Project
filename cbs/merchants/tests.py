@@ -45,6 +45,27 @@ class MerchantCreateTests(BaseAPITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
+    def test_category_defaults_to_other_when_omitted(self):
+        self.auth_as(self.admin)
+
+        response = self.client.post("/api/merchants/", {
+            "name": "CityElectric", "owner": str(self.agent.id),
+            "wallet_profile_id": str(self.profile.id),
+        })
+
+        self.assertEqual(response.data["category"], "OTHER")
+
+    def test_category_can_be_set_explicitly(self):
+        self.auth_as(self.admin)
+
+        response = self.client.post("/api/merchants/", {
+            "name": "CityElectric", "owner": str(self.agent.id),
+            "wallet_profile_id": str(self.profile.id), "category": "UTILITIES",
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["category"], "UTILITIES")
+
     def test_owner_must_be_an_agent(self):
         customer, _, _ = self.make_customer("notanagent", self.profile)
         self.auth_as(self.admin)

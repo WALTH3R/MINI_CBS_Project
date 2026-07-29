@@ -142,6 +142,13 @@ class CustomerDetailTests(BaseAPITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["national_id_number"], "NID-jdoe")
 
+    def test_customer_detail_includes_wallet_info(self):
+        self.auth_as(self.agent)
+        response = self.client.get(f"/api/accounts/customers/{self.customer_profile.id}/")
+        self.assertEqual(response.data["wallet"]["id"], str(self.wallet.id))
+        self.assertEqual(response.data["wallet"]["tag"], self.wallet.tag)
+        self.assertEqual(response.data["wallet"]["currency"], self.wallet_profile.currency)
+
     def test_customer_cannot_view_customer_detail(self):
         self.auth_as(self.customer_user)
         response = self.client.get(f"/api/accounts/customers/{self.customer_profile.id}/")
@@ -151,6 +158,35 @@ class CustomerDetailTests(BaseAPITestCase):
         self.auth_as(self.agent)
         response = self.client.get("/api/accounts/customers/not-a-uuid/")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class CustomerListTests(BaseAPITestCase):
+    def setUp(self):
+        self.agent = self.make_agent()
+        self.wallet_profile = self.make_wallet_profile()
+        self.jdoe_user, _, _ = self.make_customer("jdoe", self.wallet_profile, national_id_number="NID-JDOE")
+        self.jsmith_user, _, _ = self.make_customer("jsmith", self.wallet_profile, national_id_number="NID-JSMITH")
+        self.auth_as(self.agent)
+
+    def test_agent_can_list_all_customers(self):
+        response = self.client.get("/api/accounts/customers/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 2)
+
+    def test_search_by_username(self):
+        response = self.client.get("/api/accounts/customers/?search=jdoe")
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["username"], "jdoe")
+
+    def test_search_by_national_id(self):
+        response = self.client.get("/api/accounts/customers/?search=JSMITH")
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["username"], "jsmith")
+
+    def test_customer_cannot_list_customers(self):
+        self.auth_as(self.jdoe_user)
+        response = self.client.get("/api/accounts/customers/")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
 
 class ReportingTests(BaseAPITestCase):

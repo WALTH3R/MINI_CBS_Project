@@ -5,6 +5,34 @@ from rest_framework import status
 from cbs.test_base import BaseAPITestCase
 
 
+class MyWalletTests(BaseAPITestCase):
+    def test_customer_can_fetch_own_wallet(self):
+        profile = self.make_wallet_profile()
+        owner, _, wallet = self.make_customer("owner", profile)
+        self.auth_as(owner)
+
+        response = self.client.get("/api/wallets/mine/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["id"], str(wallet.id))
+        self.assertEqual(response.data["tag"], wallet.tag)
+
+    def test_agent_has_no_wallet_of_their_own(self):
+        self.auth_as(self.make_agent())
+        response = self.client.get("/api/wallets/mine/")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_customer_with_no_wallet_gets_404(self):
+        # Shouldn't happen via the normal create flow, but the endpoint must not crash if it does.
+        from django.contrib.auth import get_user_model
+        from accounts.models import Role
+        user = get_user_model().objects.create_user(username="walletless", password="pass12345", role=Role.CLIENT)
+        self.auth_as(user)
+
+        response = self.client.get("/api/wallets/mine/")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+
 class WalletProfileTests(BaseAPITestCase):
     def test_admin_can_create_profile_with_default_currency(self):
         self.auth_as(self.make_admin())
