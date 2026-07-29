@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>NovaBank | Transfers</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@100..900&display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-slide {
+            animation: slideIn 0.4s ease-out forwards;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-highest": "#d3e4fe",
+                        "on-primary-fixed": "#00174b",
+                        "on-primary": "#ffffff",
+                        "on-secondary-fixed": "#171c25",
+                        "secondary-container": "#dee2ef",
+                        "surface-container-low": "#eff4ff",
+                        "surface": "#f8f9ff",
+                        "on-primary-container": "#fefcff",
+                        "tertiary-container": "#00855b",
+                        "primary-fixed-dim": "#b4c5ff",
+                        "secondary-fixed-dim": "#c2c6d3",
+                        "inverse-primary": "#b4c5ff",
+                        "on-error": "#ffffff",
+                        "tertiary-fixed-dim": "#4edea3",
+                        "inverse-on-surface": "#eaf1ff",
+                        "outline": "#737685",
+                        "error-container": "#ffdad6",
+                        "tertiary-fixed": "#6ffbbe",
+                        "on-secondary": "#ffffff",
+                        "surface-container-high": "#dce9ff",
+                        "inverse-surface": "#213145",
+                        "primary-fixed": "#dbe1ff",
+                        "on-tertiary-fixed-variant": "#005236",
+                        "primary-container": "#3d6de6",
+                        "on-surface": "#0b1c30",
+                        "on-error-container": "#93000a",
+                        "primary": "#1853cc",
+                        "on-tertiary-fixed": "#002113",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary-container": "#60646f",
+                        "outline-variant": "#c3c6d6",
+                        "surface-variant": "#d3e4fe",
+                        "surface-container": "#e5eeff",
+                        "on-background": "#0b1c30",
+                        "surface-tint": "#1d55ce",
+                        "on-secondary-fixed-variant": "#424751",
+                        "secondary": "#5a5e69",
+                        "surface-dim": "#cbdbf5",
+                        "secondary-fixed": "#dee2ef",
+                        "background": "#f8f9ff",
+                        "on-surface-variant": "#434654",
+                        "on-primary-fixed-variant": "#003ea8",
+                        "error": "#ba1a1a",
+                        "tertiary": "#006947",
+                        "on-tertiary-container": "#f5fff6",
+                        "surface-bright": "#f8f9ff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "container-max": "1440px",
+                        "gutter": "24px",
+                        "card-padding": "24px",
+                        "margin-desktop": "32px",
+                        "margin-mobile": "16px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Plus Jakarta Sans"],
+                        "tabular-nums": ["Plus Jakarta Sans"],
+                        "body-lg": ["Plus Jakarta Sans"],
+                        "display-lg": ["Plus Jakarta Sans"],
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "headline-sm": ["Plus Jakarta Sans"],
+                        "label-md": ["Plus Jakarta Sans"]
+                    },
+                    "fontSize": {
+                        "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "tabular-nums": ["14px", {"fontWeight": "600"}],
+                        "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "headline-sm": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+                        "label-md": ["12px", {"lineHeight": "16px", "fontWeight": "500"}]
+                    }
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background font-body-md text-on-surface custom-scrollbar">
+<!-- TopNavBar -->
+<header class="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-margin-desktop h-16 bg-surface-container-lowest shadow-sm">
+<div class="flex items-center gap-8">
+<span class="font-display-lg text-display-lg font-bold text-primary">NovaBank</span>
+<nav class="hidden md:flex gap-6">
+<a class="text-on-surface-variant pb-1 hover:text-primary transition-colors duration-200" href="#">Dashboard</a>
+<a class="text-on-surface-variant pb-1 hover:text-primary transition-colors duration-200" href="#">Accounts</a>
+<a class="text-on-surface-variant pb-1 hover:text-primary transition-colors duration-200" href="#">Management</a>
+<a class="text-on-surface-variant pb-1 hover:text-primary transition-colors duration-200" href="#">Transactions</a>
+<a class="text-primary border-b-2 border-primary pb-1 font-bold" href="#">Payments</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex -space-x-2 mr-4">
+<img class="w-8 h-8 rounded-full border-2 border-white object-cover" data-alt="Close-up professional portrait of a smiling young financier in a blue business suit, soft studio lighting, high resolution photography with a clean corporate background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC6vlC6meKak-AXiQPqEIYJ9yJoU6YbasTk_J1zJlz-aVRR1GWc16XkJKxKBUKNuJMtIx25JWV5RE1iojizjwc4ort811QkoNHSK5Zh6MmqvD9HVcrlE03hg8PwAcgtyz-mDNuLDMSR1mxcI80lc1czfM1hSauu2EMBKKKRM5RRWSQa_RJiodvuqJ_YzEtHwLfUZs94q0lgNea8m9SmyrIKZp2vz6BsMTHTFDcb6SJAsnf34-MpIk1L"/>
+<img class="w-8 h-8 rounded-full border-2 border-white object-cover" data-alt="Side profile of an elegant businesswoman with a warm expression, wearing professional attire, bokeh background of a modern office glass building, crisp daylight." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAhl9pGca_A3xAfXoLUbxOfJfsykVYhXyE4bIigOSCcuZAvr0_G17mpFjV8hxmkZwUMGqeVh1HQNKKvHRJXcv1f_J9TwJ_G7kCXAXpcOyumu9fM5IAhBnkKHTG8ODwNx-gE7wUez9Em_EhSpqf-1TSjIQgpHDw7uDVF5T8ZZibhcUWet19PLv23Uw0TS2AFVps9c4vjZGur8eIwz1KmipNMFCectRoH8ofUZ3427sqsodE_o1hdM1kA"/>
+<div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-[10px] text-white font-bold border-2 border-white">+7</div>
+</div>
+<button class="p-2 rounded-full hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant">search</span>
+</button>
+<button class="p-2 rounded-full hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant">notifications</span>
+</button>
+<div class="w-10 h-10 rounded-full overflow-hidden border border-outline-variant cursor-pointer active:opacity-80">
+<img class="w-full h-full object-cover" data-alt="High-end professional headshot of a business executive, sharp focus on facial features, neutral gray background, cinematic lighting, corporate aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD08BpWJbj5x9J5Y8LfTLlyKwK-HPEOdlf4jAxzqACA77GFDGQfq84_A1ps33a4UzBM0qvqwzbmJa7qkSUFADB-mXNvMrln5pgtDp5yz7hZwW2HgLnBZbIRjMhK9P5FZsqOViADZSlaRJyxEBPbvm43oBsxTm0s1OfzyfhtyI1479FuaWEbE8i0id4ouKK1VhhxaAsTk_QIoafL4nlUwvyvnNiu5uGKPeXSMvnLYv4gJmfq_3P660zG"/>
+</div>
+</div>
+</header>
+<!-- SideNavBar -->
+<aside class="hidden lg:flex flex-col fixed left-0 top-16 h-[calc(100vh-64px)] w-64 p-4 bg-surface-container-low border-r border-outline-variant">
+<div class="space-y-2">
+<a class="flex items-center gap-3 text-on-surface-variant px-4 py-3 hover:bg-surface-container-high transition-all hover:translate-x-1 duration-200 rounded-lg" href="#">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+<span class="font-label-md text-label-md">Deposits</span>
+</a>
+<a class="flex items-center gap-3 bg-secondary-container text-on-secondary-container rounded-lg px-4 py-3 hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined">swap_horiz</span>
+<span class="font-label-md text-label-md font-bold">Transfers</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant px-4 py-3 hover:bg-surface-container-high transition-all hover:translate-x-1 duration-200 rounded-lg" href="#">
+<span class="material-symbols-outlined">payments</span>
+<span class="font-label-md text-label-md">Wallets</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant px-4 py-3 hover:bg-surface-container-high transition-all hover:translate-x-1 duration-200 rounded-lg" href="#">
+<span class="material-symbols-outlined">monitoring</span>
+<span class="font-label-md text-label-md">Analytics</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant px-4 py-3 hover:bg-surface-container-high transition-all hover:translate-x-1 duration-200 rounded-lg" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label-md text-label-md">Settings</span>
+</a>
+</div>
+<div class="mt-auto p-4 bg-primary/5 rounded-xl border border-primary/10">
+<p class="text-xs font-bold text-primary uppercase tracking-wider mb-2">Upgrade to Pro</p>
+<p class="text-[11px] text-on-surface-variant mb-3 leading-relaxed">Get unlimited international transfers and zero exchange fees.</p>
+<button class="w-full py-2 bg-primary text-white text-[11px] font-bold rounded-lg hover:shadow-lg transition-shadow">Explore Plans</button>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="lg:ml-64 mt-16 p-margin-desktop">
+<div class="max-w-container-max mx-auto space-y-gutter">
+<!-- Header Section -->
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div>
+<h1 class="font-display-lg text-display-lg">Transfers <span class="text-primary">& Payments</span></h1>
+<p class="text-on-surface-variant mt-1">Manage your funds across all wallets and destinations instantly.</p>
+</div>
+<div class="flex items-center gap-3">
+<button class="flex items-center gap-2 px-6 py-2.5 bg-primary text-white rounded-lg font-bold shadow-md hover:bg-primary-container transition-colors">
+<span class="material-symbols-outlined text-[20px]">add</span>
+                        New Transfer
+                    </button>
+<button class="flex items-center gap-2 px-6 py-2.5 bg-surface-container-lowest text-on-surface border border-outline-variant rounded-lg font-bold hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-[20px]">ios_share</span>
+                        Export
+                    </button>
+</div>
+</div>
+<!-- Overview Grid -->
+<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+<!-- Today -->
+<div class="bg-surface-container-lowest p-card-padding rounded-xl shadow-sm border border-outline-variant/30 flex flex-col justify-between">
+<div class="flex justify-between items-start">
+<div class="p-2 bg-primary/10 rounded-lg">
+<span class="material-symbols-outlined text-primary">schedule</span>
+</div>
+<span class="text-xs font-bold text-tertiary bg-tertiary/10 px-2 py-1 rounded">+12% vs ytd</span>
+</div>
+<div class="mt-6">
+<p class="text-on-surface-variant text-label-md">Transfers Today</p>
+<h3 class="font-headline-md text-headline-md mt-1">42 <span class="text-sm font-normal text-on-surface-variant">/ Items</span></h3>
+</div>
+</div>
+<!-- Pending -->
+<div class="bg-surface-container-lowest p-card-padding rounded-xl shadow-sm border border-outline-variant/30">
+<div class="flex justify-between items-start">
+<div class="p-2 bg-yellow-500/10 rounded-lg">
+<span class="material-symbols-outlined text-yellow-600">pending_actions</span>
+</div>
+<span class="text-xs font-bold text-yellow-600 bg-yellow-500/10 px-2 py-1 rounded">5 Waiting</span>
+</div>
+<div class="mt-6">
+<p class="text-on-surface-variant text-label-md">Pending Volume</p>
+<h3 class="font-headline-md text-headline-md mt-1">$4,250.00</h3>
+</div>
+</div>
+<!-- Completed -->
+<div class="bg-surface-container-lowest p-card-padding rounded-xl shadow-sm border border-outline-variant/30">
+<div class="flex justify-between items-start">
+<div class="p-2 bg-tertiary/10 rounded-lg">
+<span class="material-symbols-outlined text-tertiary" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<span class="text-xs font-bold text-tertiary bg-tertiary/10 px-2 py-1 rounded">98.2% Success</span>
+</div>
+<div class="mt-6">
+<p class="text-on-surface-variant text-label-md">Completed Today</p>
+<h3 class="font-headline-md text-headline-md mt-1">$12,840.50</h3>
+</div>
+</div>
+<!-- Failed -->
+<div class="bg-surface-container-lowest p-card-padding rounded-xl shadow-sm border border-outline-variant/30">
+<div class="flex justify-between items-start">
+<div class="p-2 bg-error/10 rounded-lg">
+<span class="material-symbols-outlined text-error">report</span>
+</div>
+<span class="text-xs font-bold text-error bg-error/10 px-2 py-1 rounded">-2% Decr.</span>
+</div>
+<div class="mt-6">
+<p class="text-on-surface-variant text-label-md">Failed Items</p>
+<h3 class="font-headline-md text-headline-md mt-1">2 <span class="text-sm font-normal text-on-surface-variant">/ Retrying</span></h3>
+</div>
+</div>
+</div>
+<!-- Main Interactive Section: Bento Layout -->
+<div class="grid grid-cols-12 gap-gutter">
+<!-- Transfer Form Card -->
+<div class="col-span-12 xl:col-span-8 bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/30 overflow-hidden">
+<div class="p-card-padding border-b border-outline-variant/20 flex items-center justify-between">
+<h2 class="font-headline-sm text-headline-sm">Initiate Transfer</h2>
+<div class="flex bg-surface-container-high p-1 rounded-lg">
+<button class="px-4 py-1.5 text-xs font-bold bg-white rounded-md shadow-sm">Standard</button>
+<button class="px-4 py-1.5 text-xs font-bold text-on-surface-variant">Bulk Pay</button>
+</div>
+</div>
+<div class="p-card-padding" id="transferFlowContainer">
+<!-- Step 1: Form -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8" id="transferFormStep">
+<div class="space-y-6">
+<div>
+<label class="block text-label-md text-on-surface-variant font-bold mb-2">Source Wallet</label>
+<div class="relative">
+<select class="w-full bg-surface p-3 rounded-lg border border-outline-variant focus:ring-2 focus:ring-primary outline-none appearance-none cursor-pointer">
+<option>Main Operating Account (USD) - *4221</option>
+<option>Secondary Savings (USD) - *8812</option>
+<option>Digital Asset Wallet (USDT) - 0x71...</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant">expand_more</span>
+</div>
+<p class="text-[11px] text-on-surface-variant mt-2 flex items-center gap-1">
+<span class="material-symbols-outlined text-xs">info</span> Available: $128,450.00
+                                    </p>
+</div>
+<div>
+<label class="block text-label-md text-on-surface-variant font-bold mb-2">Transfer Type</label>
+<div class="grid grid-cols-3 gap-2">
+<button class="flex flex-col items-center gap-2 p-3 border-2 border-primary bg-primary/5 rounded-xl text-primary">
+<span class="material-symbols-outlined">house</span>
+<span class="text-[10px] font-bold">Internal</span>
+</button>
+<button class="flex flex-col items-center gap-2 p-3 border border-outline-variant rounded-xl text-on-surface-variant hover:border-primary transition-colors">
+<span class="material-symbols-outlined">account_balance</span>
+<span class="text-[10px] font-bold">External</span>
+</button>
+<button class="flex flex-col items-center gap-2 p-3 border border-outline-variant rounded-xl text-on-surface-variant hover:border-primary transition-colors">
+<span class="material-symbols-outlined">public</span>
+<span class="text-[10px] font-bold">International</span>
+</button>
+</div>
+</div>
+<div>
+<label class="block text-label-md text-on-surface-variant font-bold mb-2">Recipient</label>
+<div class="flex items-center gap-3 p-3 bg-surface border border-outline-variant rounded-xl">
+<div class="w-10 h-10 rounded-full bg-surface-container-highest overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Close-up creative portrait of a startup founder, minimalist aesthetic, sharp contrast, vibrant blue highlights in the hair, digital art style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBjHt-cDbWdq-mLvVecdZsbHJ54gFPNYepew38ZawWLP0pEHGgD74U9crF6wXyc6Lt5XnCne2cZ3kl2kGw24WvPwhXQG2QFVfG3sglMoR6qsDZIOxzGf8uBViEqBy3eZ0hZ-cRlWP0WnieXRcnpBLwKkXR6_tHHq4xSBAnfGLinRnvRSafVXyqGa1vijd5xW3e2_yYtrWqVxXiw-4p6zg5pv751SwkR6T5e-1ge5P4BhZHQ1781V3Ot"/>
+</div>
+<div class="flex-1">
+<p class="text-xs font-bold">Sinta Permata</p>
+<p class="text-[10px] text-on-surface-variant">Bank Central • 0987-1234-56</p>
+</div>
+<button class="text-primary text-xs font-bold">Change</button>
+</div>
+</div>
+</div>
+<div class="space-y-6">
+<div>
+<label class="block text-label-md text-on-surface-variant font-bold mb-2">Amount to Transfer</label>
+<div class="relative">
+<input class="w-full text-headline-md font-bold p-4 pl-10 bg-surface rounded-xl border border-outline-variant focus:ring-2 focus:ring-primary outline-none" placeholder="0.00" type="text"/>
+<span class="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-on-surface-variant">$</span>
+</div>
+<div class="flex gap-2 mt-3">
+<button class="px-3 py-1 bg-surface-container-high rounded text-[10px] font-bold text-on-surface-variant hover:bg-primary hover:text-white transition-colors">100</button>
+<button class="px-3 py-1 bg-surface-container-high rounded text-[10px] font-bold text-on-surface-variant hover:bg-primary hover:text-white transition-colors">500</button>
+<button class="px-3 py-1 bg-surface-container-high rounded text-[10px] font-bold text-on-surface-variant hover:bg-primary hover:text-white transition-colors">1,000</button>
+<button class="px-3 py-1 bg-surface-container-high rounded text-[10px] font-bold text-on-surface-variant hover:bg-primary hover:text-white transition-colors">Max</button>
+</div>
+</div>
+<div>
+<label class="block text-label-md text-on-surface-variant font-bold mb-2">Notes (Optional)</label>
+<textarea class="w-full bg-surface p-3 rounded-lg border border-outline-variant focus:ring-2 focus:ring-primary outline-none resize-none" placeholder="Add a reference note..." rows="3"></textarea>
+</div>
+<div class="pt-4">
+<button class="w-full py-4 bg-primary text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:shadow-xl hover:translate-y-[-1px] transition-all" onclick="showOTP()">
+                                        Continue to OTP
+                                        <span class="material-symbols-outlined text-[20px]">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Step 2: OTP (Hidden by Default) -->
+<div class="hidden animate-slide flex flex-col items-center py-8" id="otpStep">
+<div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-6">
+<span class="material-symbols-outlined text-primary text-3xl">verified_user</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm mb-2 text-center">Verify Transfer</h3>
+<p class="text-on-surface-variant text-center mb-8 max-w-sm">We've sent a 6-digit verification code to your registered mobile number ending in •••• 9924.</p>
+<div class="flex gap-4 mb-8">
+<input class="w-12 h-16 text-center text-headline-md font-bold bg-surface border-2 border-outline-variant rounded-xl focus:border-primary outline-none" maxlength="1" type="text" value="8"/>
+<input class="w-12 h-16 text-center text-headline-md font-bold bg-surface border-2 border-outline-variant rounded-xl focus:border-primary outline-none" maxlength="1" type="text" value="4"/>
+<input class="w-12 h-16 text-center text-headline-md font-bold bg-surface border-2 border-outline-variant rounded-xl focus:border-primary outline-none" maxlength="1" type="text" value="2"/>
+<span class="flex items-center text-outline-variant">—</span>
+<input class="w-12 h-16 text-center text-headline-md font-bold bg-surface border-2 border-outline-variant rounded-xl focus:border-primary outline-none" maxlength="1" type="text"/>
+<input class="w-12 h-16 text-center text-headline-md font-bold bg-surface border-2 border-outline-variant rounded-xl focus:border-primary outline-none" maxlength="1" type="text"/>
+<input class="w-12 h-16 text-center text-headline-md font-bold bg-surface border-2 border-outline-variant rounded-xl focus:border-primary outline-none" maxlength="1" type="text"/>
+</div>
+<div class="flex flex-col gap-4 w-full max-w-xs">
+<button class="w-full py-4 bg-primary text-white rounded-xl font-bold hover:shadow-xl transition-all" onclick="showSuccess()">Confirm Transfer</button>
+<button class="w-full py-4 bg-transparent text-on-surface-variant rounded-xl font-bold hover:bg-surface-container-high transition-all" onclick="backToForm()">Cancel & Edit</button>
+</div>
+<p class="mt-6 text-xs text-on-surface-variant">Didn't receive code? <a class="text-primary font-bold" href="#">Resend Code (42s)</a></p>
+</div>
+</div>
+</div>
+<!-- Right Column Cards -->
+<div class="col-span-12 xl:col-span-4 space-y-gutter">
+<!-- Volume Chart Card -->
+<div class="bg-surface-container-lowest p-card-padding rounded-xl shadow-sm border border-outline-variant/30">
+<div class="flex items-center justify-between mb-6">
+<h2 class="font-headline-sm text-headline-sm">Transfer Volume</h2>
+<button class="p-2 hover:bg-surface-container-high rounded-full">
+<span class="material-symbols-outlined text-on-surface-variant">more_vert</span>
+</button>
+</div>
+<div class="h-48 w-full relative group">
+<!-- Visual placeholder for a chart -->
+<div class="absolute inset-0 flex items-end justify-between gap-2">
+<div class="w-full bg-primary/10 hover:bg-primary/30 transition-colors rounded-t-sm h-[40%]"></div>
+<div class="w-full bg-primary/10 hover:bg-primary/30 transition-colors rounded-t-sm h-[65%]"></div>
+<div class="w-full bg-primary/10 hover:bg-primary/30 transition-colors rounded-t-sm h-[45%]"></div>
+<div class="w-full bg-primary/10 hover:bg-primary/30 transition-colors rounded-t-sm h-[85%]"></div>
+<div class="w-full bg-primary/10 hover:bg-primary/30 transition-colors rounded-t-sm h-[55%]"></div>
+<div class="w-full bg-primary/10 hover:bg-primary/30 transition-colors rounded-t-sm h-[75%]"></div>
+<div class="w-full bg-primary h-[95%] rounded-t-sm"></div>
+</div>
+</div>
+<div class="flex justify-between mt-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-tighter">
+<span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span class="text-primary">Sun</span>
+</div>
+</div>
+<!-- Transfer History Timeline -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/30 flex flex-col h-[400px]">
+<div class="p-card-padding border-b border-outline-variant/20 flex items-center justify-between sticky top-0 bg-surface-container-lowest rounded-t-xl z-10">
+<h2 class="font-headline-sm text-headline-sm">Live Timeline</h2>
+<span class="flex items-center gap-1 text-[10px] text-tertiary font-bold bg-tertiary/10 px-2 py-0.5 rounded-full">
+<span class="w-1.5 h-1.5 bg-tertiary rounded-full animate-pulse"></span>
+                                Live Updates
+                            </span>
+</div>
+<div class="flex-1 overflow-y-auto p-card-padding custom-scrollbar space-y-6">
+<!-- Timeline Item -->
+<div class="relative pl-8 pb-2 border-l-2 border-dashed border-outline-variant">
+<div class="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-primary ring-4 ring-primary/10"></div>
+<div class="flex items-start justify-between">
+<div>
+<p class="text-xs font-bold">Transfer Initiated</p>
+<p class="text-[10px] text-on-surface-variant">External Transfer • #TRX-10294</p>
+</div>
+<span class="text-[10px] text-on-surface-variant font-medium">Just now</span>
+</div>
+<div class="mt-2 p-2 bg-surface rounded-lg border border-outline-variant/30 flex items-center gap-2">
+<span class="material-symbols-outlined text-sm text-on-surface-variant">payments</span>
+<span class="text-[10px] font-bold">$1,250.00 to Morgan Chase</span>
+</div>
+</div>
+<!-- Timeline Item -->
+<div class="relative pl-8 pb-2 border-l-2 border-dashed border-outline-variant">
+<div class="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-tertiary"></div>
+<div class="flex items-start justify-between">
+<div>
+<p class="text-xs font-bold">Verification Successful</p>
+<p class="text-[10px] text-on-surface-variant">Internal Transfer • #TRX-10292</p>
+</div>
+<span class="text-[10px] text-on-surface-variant font-medium">12m ago</span>
+</div>
+</div>
+<!-- Timeline Item -->
+<div class="relative pl-8 pb-2 border-l-2 border-dashed border-outline-variant">
+<div class="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-error"></div>
+<div class="flex items-start justify-between">
+<div>
+<p class="text-xs font-bold">Refund Processed</p>
+<p class="text-[10px] text-on-surface-variant">Failed Transaction • #TRX-10281</p>
+</div>
+<span class="text-[10px] text-on-surface-variant font-medium">45m ago</span>
+</div>
+</div>
+<!-- Timeline Item -->
+<div class="relative pl-8">
+<div class="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-outline-variant"></div>
+<div class="flex items-start justify-between">
+<div>
+<p class="text-xs font-bold">Completed</p>
+<p class="text-[10px] text-on-surface-variant">Wallet Top-up • #TRX-10275</p>
+</div>
+<span class="text-[10px] text-on-surface-variant font-medium">2h ago</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Transfer History Table -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/30 overflow-hidden">
+<div class="p-card-padding flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-outline-variant/20">
+<div class="flex items-center gap-4">
+<h2 class="font-headline-sm text-headline-sm">History</h2>
+<div class="flex items-center bg-surface-container-high rounded-full px-4 py-1.5 border border-outline-variant">
+<span class="material-symbols-outlined text-sm text-on-surface-variant mr-2">search</span>
+<input class="bg-transparent border-none text-xs focus:ring-0 w-48 p-0" placeholder="Search transfers..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+<button class="px-4 py-1.5 bg-primary text-white text-xs font-bold rounded-full">All</button>
+<button class="px-4 py-1.5 text-on-surface-variant text-xs font-bold hover:bg-surface-container-high rounded-full transition-colors">Internal</button>
+<button class="px-4 py-1.5 text-on-surface-variant text-xs font-bold hover:bg-surface-container-high rounded-full transition-colors">External</button>
+<button class="px-4 py-1.5 text-on-surface-variant text-xs font-bold hover:bg-surface-container-high rounded-full transition-colors">International</button>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead class="bg-surface text-on-surface-variant font-label-md text-label-md uppercase tracking-wider">
+<tr>
+<th class="px-6 py-4 font-bold">Date</th>
+<th class="px-6 py-4 font-bold">Recipient</th>
+<th class="px-6 py-4 font-bold">Type</th>
+<th class="px-6 py-4 font-bold">Reference ID</th>
+<th class="px-6 py-4 font-bold">Amount</th>
+<th class="px-6 py-4 font-bold">Status</th>
+<th class="px-6 py-4"></th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/20">
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="px-6 py-4 text-sm font-medium">28 Jan 2026</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Portrait of a young creative professional with glasses and a friendly smile, vibrant orange lighting accents, studio photography." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDM_s37KY54iZoo03PNMDAEKsmUHWR-4ryp2K418qDAGCLAL4xpvc16wsGQ3m8f88JJfNYBqYn0NNglceQgkDBPyNpXLg8RpJrcLkb--VFGfkE0EEz9mexM6VdxAZl16jm8YAH2EhAoC8Nac7GCGEWlAOibA5P6-VN_MszGmo3ccUqADoCxXnweeeXNGN_YhkQIFKix0vJSZlIarYMi43chpE_aixh-YMcGK1D73qUjue25tMqOmsVF"/>
+</div>
+<div>
+<p class="text-sm font-bold">Aan Wijaya</p>
+<p class="text-[10px] text-on-surface-variant">Bank Mandiri • *9912</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="px-2.5 py-1 rounded-md text-[10px] font-bold bg-secondary-container text-on-secondary-container">External</span>
+</td>
+<td class="px-6 py-4 font-mono text-xs">TRX-938421</td>
+<td class="px-6 py-4 font-tabular-nums text-sm font-bold">-$450.00</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold bg-tertiary/10 text-tertiary">
+<span class="w-1.5 h-1.5 bg-tertiary rounded-full"></span>
+                                        Completed
+                                    </span>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-on-surface-variant">visibility</span>
+</button>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="px-6 py-4 text-sm font-medium">27 Jan 2026</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center text-primary font-bold text-xs">SP</div>
+<div>
+<p class="text-sm font-bold">Sinta Permata</p>
+<p class="text-[10px] text-on-surface-variant">Wallet Transfer</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="px-2.5 py-1 rounded-md text-[10px] font-bold bg-primary/10 text-primary">Internal</span>
+</td>
+<td class="px-6 py-4 font-mono text-xs">TRX-938112</td>
+<td class="px-6 py-4 font-tabular-nums text-sm font-bold">-$1,200.00</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold bg-yellow-500/10 text-yellow-600">
+<span class="w-1.5 h-1.5 bg-yellow-500 rounded-full"></span>
+                                        Pending
+                                    </span>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-on-surface-variant">visibility</span>
+</button>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="px-6 py-4 text-sm font-medium">26 Jan 2026</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Stylized icon of a global enterprise, architectural photography of a sleek skyscraper reflected in glass, corporate blue tones, high resolution." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBkLcxsogQZBJUi4J1kStiWwLKQS-C_QPmfjc7n_Q5i6lgwi90UYNXY0DunPJ0JvZTrL3z_57OeUJflzjAi7gI2F8oBMBvQoty75HWQHWOxw6Ngl8ulovSaA5iqpbn4Qw21KWCoD2x2j_hO8ya_UsL7W0rMs80Rp-fQzmdB5DZ2VP6qx8LyOHbkrz341MwFxTNPAv3GySMkYrcKCv81uCPPvqlzlA1xA1lCLNq6BM9lULomC0PGNMzl"/>
+</div>
+<div>
+<p class="text-sm font-bold">Cloud Infrastructure LLC</p>
+<p class="text-[10px] text-on-surface-variant">SWIFT • GB88...4221</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="px-2.5 py-1 rounded-md text-[10px] font-bold bg-purple-500/10 text-purple-600">International</span>
+</td>
+<td class="px-6 py-4 font-mono text-xs">TRX-937905</td>
+<td class="px-6 py-4 font-tabular-nums text-sm font-bold">-$3,440.00</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold bg-error/10 text-error">
+<span class="w-1.5 h-1.5 bg-error rounded-full"></span>
+                                        Failed
+                                    </span>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-on-surface-variant">visibility</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="p-4 bg-surface flex items-center justify-between border-t border-outline-variant/20">
+<p class="text-xs text-on-surface-variant">Showing 1-10 of 124 results</p>
+<div class="flex items-center gap-2">
+<button class="p-2 rounded-lg border border-outline-variant hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-sm">chevron_left</span>
+</button>
+<button class="px-3 py-1 rounded-lg bg-primary text-white text-xs font-bold">1</button>
+<button class="px-3 py-1 rounded-lg hover:bg-surface-container-high text-xs">2</button>
+<button class="px-3 py-1 rounded-lg hover:bg-surface-container-high text-xs">3</button>
+<button class="p-2 rounded-lg border border-outline-variant hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-sm">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Success Overlay (Hidden) -->
+<div class="fixed inset-0 z-[100] bg-on-background/40 backdrop-blur-sm hidden items-center justify-center p-4" id="successOverlay">
+<div class="bg-white rounded-2xl p-8 max-w-sm w-full shadow-2xl flex flex-col items-center animate-slide">
+<div class="w-20 h-20 bg-tertiary/10 rounded-full flex items-center justify-center mb-6">
+<span class="material-symbols-outlined text-tertiary text-5xl" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<h3 class="font-headline-md text-headline-md mb-2 text-center">Transfer Sent!</h3>
+<p class="text-on-surface-variant text-center mb-8">Your transfer of <span class="font-bold text-on-surface">$1,250.00</span> has been successfully processed and is on its way.</p>
+<div class="w-full space-y-3">
+<button class="w-full py-4 bg-primary text-white rounded-xl font-bold" onclick="closeSuccess()">View Receipt</button>
+<button class="w-full py-4 bg-surface text-on-surface-variant border border-outline-variant rounded-xl font-bold" onclick="closeSuccess()">Done</button>
+</div>
+</div>
+</div>
+<script>
+        function showOTP() {
+            document.getElementById('transferFormStep').classList.add('hidden');
+            document.getElementById('otpStep').classList.remove('hidden');
+        }
+
+        function backToForm() {
+            document.getElementById('otpStep').classList.add('hidden');
+            document.getElementById('transferFormStep').classList.remove('hidden');
+        }
+
+        function showSuccess() {
+            document.getElementById('successOverlay').style.display = 'flex';
+        }
+
+        function closeSuccess() {
+            document.getElementById('successOverlay').style.display = 'none';
+            backToForm();
+        }
+
+        // Simple input focus jumping for OTP
+        const otpInputs = document.querySelectorAll('#otpStep input');
+        otpInputs.forEach((input, index) => {
+            input.addEventListener('input', (e) => {
+                if (e.target.value.length === 1 && index < otpInputs.length - 1) {
+                    otpInputs[index + 1].focus();
+                }
+            });
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Backspace' && !e.target.value && index > 0) {
+                    otpInputs[index - 1].focus();
+                }
+            });
+        });
+    </script>
+</body></html>

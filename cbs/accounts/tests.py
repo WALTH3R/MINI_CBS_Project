@@ -1,10 +1,39 @@
 from decimal import Decimal
 
 from rest_framework import status
+from rest_framework_simplejwt.tokens import AccessToken
 
 from cbs.test_base import BaseAPITestCase
 from wallets.models import Wallet
 from wallets.services import do_deposit, do_pay_merchant, do_transfer
+
+
+class TokenClaimsTests(BaseAPITestCase):
+    """The Angular frontend routes by role, decoded straight from the JWT — see accounts/auth.py."""
+
+    def test_access_token_carries_role_username_and_staff_claims(self):
+        agent = self.make_agent("kev")
+
+        response = self.client.post("/api/token/", {"username": "kev", "password": "pass12345"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        claims = AccessToken(response.data["access"])
+        self.assertEqual(claims["role"], "AGENT")
+        self.assertEqual(claims["username"], "kev")
+        self.assertEqual(claims["is_staff"], False)
+        self.assertEqual(claims["user_id"], str(agent.id))
+
+    def test_me_endpoint_matches_token_claims(self):
+        agent = self.make_agent("kev")
+        self.auth_as(agent)
+
+        response = self.client.get("/api/me/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["username"], "kev")
+        self.assertEqual(response.data["role"], "AGENT")
+        self.assertEqual(response.data["is_staff"], False)
+        self.assertEqual(str(response.data["id"]), str(agent.id))
 
 
 class AgentCreateTests(BaseAPITestCase):

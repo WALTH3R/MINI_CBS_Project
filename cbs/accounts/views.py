@@ -6,14 +6,20 @@ from rest_framework.generics import CreateAPIView, ListAPIView, RetrieveAPIView
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.views import TokenObtainPairView
 
 from cbs.utils import ValidatedUUIDLookupMixin, get_object_or_400
 from wallets.models import Wallet
 from wallets.permissions import IsAgent
+from .auth import RoleTokenObtainPairSerializer
 from .models import CustomerProfile
 from .serializers import (
     AgentCreateSerializer, CustomerCreateSerializer, CustomerProfileSerializer, TransactionSerializer,
 )
+
+
+class RoleTokenObtainPairView(TokenObtainPairView):
+    serializer_class = RoleTokenObtainPairSerializer
 
 
 class CustomerCreateView(CreateAPIView):

@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>NovaBank | Payments Management</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@100..900&display=swap" rel="stylesheet"/>
+<!-- Tailwind Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-highest": "#d3e4fe",
+                        "on-primary-fixed": "#00174b",
+                        "on-primary": "#ffffff",
+                        "on-secondary-fixed": "#171c25",
+                        "secondary-container": "#dee2ef",
+                        "surface-container-low": "#eff4ff",
+                        "surface": "#f8f9ff",
+                        "on-primary-container": "#fefcff",
+                        "tertiary-container": "#00855b",
+                        "primary-fixed-dim": "#b4c5ff",
+                        "secondary-fixed-dim": "#c2c6d3",
+                        "inverse-primary": "#b4c5ff",
+                        "on-error": "#ffffff",
+                        "tertiary-fixed-dim": "#4edea3",
+                        "inverse-on-surface": "#eaf1ff",
+                        "outline": "#737685",
+                        "error-container": "#ffdad6",
+                        "tertiary-fixed": "#6ffbbe",
+                        "on-secondary": "#ffffff",
+                        "surface-container-high": "#dce9ff",
+                        "inverse-surface": "#213145",
+                        "primary-fixed": "#dbe1ff",
+                        "on-tertiary-fixed-variant": "#005236",
+                        "primary-container": "#3d6de6",
+                        "on-surface": "#0b1c30",
+                        "on-error-container": "#93000a",
+                        "primary": "#1853cc",
+                        "on-tertiary-fixed": "#002113",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary-container": "#60646f",
+                        "outline-variant": "#c3c6d6",
+                        "surface-variant": "#d3e4fe",
+                        "surface-container": "#e5eeff",
+                        "on-background": "#0b1c30",
+                        "surface-tint": "#1d55ce",
+                        "on-secondary-fixed-variant": "#424751",
+                        "secondary": "#5a5e69",
+                        "surface-dim": "#cbdbf5",
+                        "secondary-fixed": "#dee2ef",
+                        "background": "#f8f9ff",
+                        "on-surface-variant": "#434654",
+                        "on-primary-fixed-variant": "#003ea8",
+                        "error": "#ba1a1a",
+                        "tertiary": "#006947",
+                        "on-tertiary-container": "#f5fff6",
+                        "surface-bright": "#f8f9ff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "container-max": "1440px",
+                        "gutter": "24px",
+                        "card-padding": "24px",
+                        "margin-desktop": "32px",
+                        "margin-mobile": "16px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Plus Jakarta Sans"],
+                        "tabular-nums": ["Plus Jakarta Sans"],
+                        "body-lg": ["Plus Jakarta Sans"],
+                        "display-lg": ["Plus Jakarta Sans"],
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "headline-sm": ["Plus Jakarta Sans"],
+                        "label-md": ["Plus Jakarta Sans"]
+                    },
+                    "fontSize": {
+                        "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "tabular-nums": ["14px", {"fontWeight": "600"}],
+                        "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "headline-sm": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+                        "label-md": ["12px", {"lineHeight": "16px", "fontWeight": "500"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f8f9ff;
+            color: #0b1c30;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .premium-card {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.05);
+            padding: 24px;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #d3e4fe;
+            border-radius: 10px;
+        }
+        .glass-nav {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+        }
+    </style>
+</head>
+<body class="bg-surface font-body-md text-on-background">
+<!-- TopNavBar -->
+<header class="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-margin-desktop h-16 bg-surface-container-lowest shadow-sm">
+<div class="flex items-center gap-8">
+<h1 class="font-display-lg text-display-lg font-bold text-primary">NovaBank</h1>
+<nav class="hidden md:flex gap-6 items-center">
+<a class="text-on-surface-variant hover:text-primary transition-colors duration-200" href="#">Dashboard</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors duration-200" href="#">Accounts</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors duration-200" href="#">Management</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors duration-200" href="#">Transactions</a>
+<a class="text-primary border-b-2 border-primary pb-1 font-bold" href="#">Payments</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative hidden sm:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">search</span>
+<input class="pl-10 pr-4 py-2 bg-surface-container-low border-none rounded-full text-body-md focus:ring-2 focus:ring-primary/20 w-64" placeholder="Search transactions..." type="text"/>
+</div>
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant">notifications</span>
+</button>
+<div class="h-8 w-px bg-outline-variant mx-2"></div>
+<div class="flex items-center gap-3 cursor-pointer">
+<img class="w-10 h-10 rounded-full border-2 border-primary-container object-cover" data-alt="Professional corporate headshot of a female executive with a confident smile, wearing a modern blue suit, high-end studio lighting, clean white background, representative of a premium fintech user profile avatar." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDvBCD8fX-XBxvHGszBPGpNeihpkfKA4teGVlcO1h1EZk_rA5-jvwNGVwsoZHufNczAUbtQ9QZEJgBRaJSGN2djeUS-knb9VHxcWISO68RwsRmIQEPgk5-LMZgSLNzOpZ3mqz5b8oCJ1AFFURLPoUipMsTuL4Rd1APBIN58g35kuuzgJo0EvRZqwOCqxIFQnf6nZ4vEZWn08pJzMNpw_bSTEaCo15FDlI5GBHbHe_DtzAekYKd7nsqK"/>
+</div>
+</div>
+</header>
+<!-- SideNav (Mobile Only / Persistent in Desktop Layout if chosen) -->
+<aside class="hidden lg:flex flex-col fixed left-0 top-16 h-[calc(100vh-64px)] p-4 border-r border-outline-variant bg-surface-container-low w-64">
+<div class="space-y-2 mt-4">
+<div class="flex items-center gap-3 text-on-surface-variant px-4 py-3 hover:bg-surface-container-high rounded-lg cursor-pointer transition-all duration-200">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+<span class="font-label-md">Deposits</span>
+</div>
+<div class="flex items-center gap-3 text-on-surface-variant px-4 py-3 hover:bg-surface-container-high rounded-lg cursor-pointer transition-all duration-200">
+<span class="material-symbols-outlined">swap_horiz</span>
+<span class="font-label-md">Transfers</span>
+</div>
+<div class="flex items-center gap-3 bg-secondary-container text-on-secondary-container rounded-lg px-4 py-3 cursor-pointer">
+<span class="material-symbols-outlined">payments</span>
+<span class="font-label-md">Wallets</span>
+</div>
+<div class="flex items-center gap-3 text-on-surface-variant px-4 py-3 hover:bg-surface-container-high rounded-lg cursor-pointer transition-all duration-200">
+<span class="material-symbols-outlined">monitoring</span>
+<span class="font-label-md">Analytics</span>
+</div>
+<div class="flex items-center gap-3 text-on-surface-variant px-4 py-3 hover:bg-surface-container-high rounded-lg cursor-pointer transition-all duration-200">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label-md">Settings</span>
+</div>
+</div>
+<div class="mt-auto p-4 bg-primary rounded-xl text-on-primary">
+<p class="font-bold text-body-md mb-1">Premium Plan</p>
+<p class="text-[11px] opacity-80 mb-3">Get unlimited international transfers and higher limits.</p>
+<button class="w-full py-2 bg-white text-primary rounded-lg font-bold text-label-md">Upgrade Now</button>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="pt-24 pb-12 px-margin-mobile md:px-margin-desktop lg:ml-64 transition-all duration-300">
+<!-- Header Section -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface">Payment Management</h2>
+<p class="text-on-surface-variant font-body-md">Seamlessly manage your bills, transfers, and digital wallet.</p>
+</div>
+<div class="flex gap-3">
+<button class="flex items-center gap-2 px-6 py-3 bg-primary text-on-primary rounded-full font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] transition-transform" onclick="toggleModal('paymentModal')">
+<span class="material-symbols-outlined">add</span>
+                    New Payment
+                </button>
+<button class="flex items-center gap-2 px-6 py-3 bg-white text-primary border border-primary-container rounded-full font-bold hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined">schedule</span>
+                    Schedules
+                </button>
+</div>
+</div>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-12 gap-6">
+<!-- Payment Summary Cards (Col Span 8 on Desktop) -->
+<div class="col-span-12 lg:col-span-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+<!-- Total Outgoing -->
+<div class="premium-card border-l-4 border-primary">
+<div class="flex justify-between items-start mb-4">
+<div class="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">trending_up</span>
+</div>
+<span class="text-label-md text-tertiary font-bold bg-tertiary-fixed px-2 py-0.5 rounded">+12%</span>
+</div>
+<p class="text-on-surface-variant text-label-md uppercase tracking-wider font-bold">Monthly Outgoing</p>
+<h3 class="text-headline-md font-bold mt-1">$4,820.50</h3>
+</div>
+<!-- Pending Bills -->
+<div class="premium-card border-l-4 border-error">
+<div class="flex justify-between items-start mb-4">
+<div class="w-10 h-10 bg-error/10 rounded-lg flex items-center justify-center text-error">
+<span class="material-symbols-outlined">notification_important</span>
+</div>
+<span class="text-label-md text-error font-bold bg-error-container px-2 py-0.5 rounded">3 Due</span>
+</div>
+<p class="text-on-surface-variant text-label-md uppercase tracking-wider font-bold">Upcoming Bills</p>
+<h3 class="text-headline-md font-bold mt-1">$840.12</h3>
+</div>
+<!-- Savings Auto-pay -->
+<div class="premium-card border-l-4 border-tertiary">
+<div class="flex justify-between items-start mb-4">
+<div class="w-10 h-10 bg-tertiary/10 rounded-lg flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined">savings</span>
+</div>
+<span class="text-label-md text-tertiary font-bold bg-tertiary-fixed px-2 py-0.5 rounded">Active</span>
+</div>
+<p class="text-on-surface-variant text-label-md uppercase tracking-wider font-bold">Auto-Savings</p>
+<h3 class="text-headline-md font-bold mt-1">$1,200.00</h3>
+</div>
+</div>
+<!-- Payment Methods (Col Span 4) -->
+<div class="col-span-12 lg:col-span-4 row-span-2">
+<div class="premium-card h-full">
+<h4 class="font-headline-sm mb-6 flex justify-between items-center">
+                        Payment Methods
+                        <button class="text-primary text-label-md font-bold hover:underline">Manage</button>
+</h4>
+<div class="space-y-4">
+<!-- Card 1 -->
+<div class="p-4 rounded-xl bg-gradient-to-br from-primary to-blue-700 text-white relative overflow-hidden group cursor-pointer">
+<div class="relative z-10">
+<div class="flex justify-between items-start mb-8">
+<span class="material-symbols-outlined text-4xl opacity-50">contactless</span>
+<p class="font-bold tracking-widest text-lg italic">VISA</p>
+</div>
+<p class="font-tabular-nums text-lg mb-4">**** **** **** 4229</p>
+<div class="flex justify-between items-end">
+<div>
+<p class="text-[10px] uppercase opacity-70">Card Holder</p>
+<p class="font-bold">BINTANG ADITYA</p>
+</div>
+<div class="text-right">
+<p class="text-[10px] uppercase opacity-70">Expiry</p>
+<p class="font-bold">08/27</p>
+</div>
+</div>
+</div>
+<div class="absolute -right-4 -bottom-4 w-32 h-32 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition-all"></div>
+</div>
+<!-- Wallet -->
+<div class="flex items-center justify-between p-4 border border-outline-variant rounded-xl hover:border-primary transition-colors cursor-pointer bg-surface-container-low">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+</div>
+<div>
+<p class="font-bold text-body-md">Main Wallet</p>
+<p class="text-label-md text-on-surface-variant">Balance: $12,370.00</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-primary">check_circle</span>
+</div>
+<!-- Bank Link -->
+<div class="flex items-center justify-between p-4 border border-outline-variant rounded-xl hover:border-primary transition-colors cursor-pointer">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 bg-secondary/10 rounded-lg flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined">account_balance</span>
+</div>
+<div>
+<p class="font-bold text-body-md">Chase Bank Account</p>
+<p class="text-label-md text-on-surface-variant">Link established</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline">chevron_right</span>
+</div>
+</div>
+<button class="w-full mt-6 py-3 border-2 border-dashed border-outline-variant rounded-xl text-outline font-bold hover:border-primary hover:text-primary transition-all flex items-center justify-center gap-2">
+<span class="material-symbols-outlined">add_card</span>
+                        Add New Method
+                    </button>
+</div>
+</div>
+<!-- Categorized Bills & Quick Pay (Col Span 8) -->
+<div class="col-span-12 lg:col-span-8 space-y-6">
+<!-- Beneficiaries / Favorites -->
+<div class="premium-card overflow-hidden">
+<h4 class="font-headline-sm mb-6">Favorites & Beneficiaries</h4>
+<div class="flex gap-6 overflow-x-auto pb-4 custom-scrollbar">
+<div class="flex flex-col items-center gap-2 shrink-0 cursor-pointer group">
+<div class="w-14 h-14 rounded-full border-2 border-dashed border-primary flex items-center justify-center text-primary group-hover:bg-primary/5 transition-colors">
+<span class="material-symbols-outlined">add</span>
+</div>
+<span class="text-label-md font-bold">Add</span>
+</div>
+<div class="flex flex-col items-center gap-2 shrink-0 cursor-pointer">
+<img class="w-14 h-14 rounded-full object-cover border-2 border-transparent hover:border-primary transition-all" data-alt="Close-up portrait of a young professional woman with a warm, friendly expression, natural lighting, professional fintech user interface profile style, high quality photography." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD-2UucN9QnVo2RDNtCaKS_RLloGf4w9Csew_8CJMSOEE_3Vcskif7fHM-wSIaiu0ZXecQiBzM3bbj26sqeThLQZizg9Ns_pNi3O5rC44TtG82ZgyQ2CcBgeyCujdLGVyxsvmYzunoLJ9IW9m2h9dY11WkHmyA3vUkTx1bUIje6-38VobSskG1xuvMJkhfdDai47GMuX5giLT-AibFzcXQA4n30IgCqqeVXuwWdx6jP93UQqT3v7MUs"/>
+<span class="text-label-md font-bold">Sinta</span>
+</div>
+<div class="flex flex-col items-center gap-2 shrink-0 cursor-pointer">
+<img class="w-14 h-14 rounded-full object-cover border-2 border-transparent hover:border-primary transition-all" data-alt="Portrait of a male entrepreneur in his 30s, sharp features, soft studio lighting, corporate lifestyle aesthetic, modern clean background, high resolution profile image." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD1bsluFNtA5ocX4wzkLzQm2XolVPHqPJAJ6kJANIZ2s6gUZPgeB2VllBpe-CIpYNRFw6pqVgrCULAY2f1aktjGlPRIfgEBTSIuHljKSSCZAdgRs3AYbB8lhrH57vUDyQROGK2V9Q2TrBhH2XyU-AkrWkSXa52ZfSbEv-lMykWDI3wpwsBjzaX6pfSnxsxgYqqKJccvh1rQEHkFIxWUDZsbrKVOwnjPOM1kxQQ0JPr1EXc4o7mSw2cV"/>
+<span class="text-label-md font-bold">Aan</span>
+</div>
+<div class="flex flex-col items-center gap-2 shrink-0 cursor-pointer">
+<img class="w-14 h-14 rounded-full object-cover border-2 border-transparent hover:border-primary transition-all" data-alt="Headshot of a creative professional woman wearing glasses, smiling brightly, vibrant lighting, modern office background blur, high-end profile picture for a banking app." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAXMsEycTM9nZxn2gYU_v2SFSAaiKOrle_BZtEHfQAHFV8B9d3Ao0KT00X7QnwQ2vcUPIbNDn0TuUXH4qFPQKOmc21ITqHBySOFDw4hSrzoML7hQIH5qNgSDfmXy-wETyxfrJEJ97-YA6QTsMxgXHbvd4xRgoeWQCX7dsHKfHC5hX8yYe8V9-oDbBTddoznqCIFbsBQfJwnEzG--94tAG7gMZ60WgVQMYzubj_yH138HUbhtavOe3Hr"/>
+<span class="text-label-md font-bold">Laras</span>
+</div>
+<div class="flex flex-col items-center gap-2 shrink-0 cursor-pointer">
+<img class="w-14 h-14 rounded-full object-cover border-2 border-transparent hover:border-primary transition-all" data-alt="Portrait of a young male software developer with a minimalist aesthetic, neutral colors, clean professional lighting, high resolution user avatar for fintech dashboard." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCahMcpqwPxvfsEkIbuI4_byT4tcoXliNI5WfMoeltp0xH_SJyzYgTlhpQ3iM5tUbtbMY2CI60IFT5JP83XtXTiHNBxIt06gYuUyHw2kdzjlU2rgr8ou6lTiE79nmRW3CvmuIPV85KQcsckQXCkvw_LZDURknF1XRBaEmT-Miljgy0cWM1AbWrVvh9XXPfSDkbO1E2RVnwav5kMUnEp_KqRGtKnVpT7jGQELet0YDgo_7jKeEGAtnqv"/>
+<span class="text-label-md font-bold">Dika</span>
+</div>
+<div class="flex flex-col items-center gap-2 shrink-0 cursor-pointer">
+<img class="w-14 h-14 rounded-full object-cover border-2 border-transparent hover:border-primary transition-all" data-alt="Close up of an elegant professional woman, soft lighting, sophisticated corporate appearance, blurred high-end lobby background, profile photo for a premium bank platform." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDTBAWR0eNuo-H9TZ3EP6ReYgTldqoTVoPOF2soTxITxwZcN0dZ-QBvp-Kqh_wK28bRZQ_heT9zFFyWJ_53QBZdy9QsqaBVpehjPi4lBKLLNU8i9n38b2VZ9rRkfL4YErxwz5pQQWBXUhipgEXFELaI3EESbGQ4sFbcN6Psf672NRt0iXctMcITfO-DMLhftnMapmQOJ-95XWNEHpV5aWRP34-fCkbb3xZQv1CGYY33EgZfqpxdDVrq"/>
+<span class="text-label-md font-bold">Maya</span>
+</div>
+<div class="flex flex-col items-center gap-2 shrink-0 cursor-pointer">
+<div class="w-14 h-14 rounded-full bg-secondary-container flex items-center justify-center text-on-secondary-container font-bold">RH</div>
+<span class="text-label-md font-bold">Robby</span>
+</div>
+</div>
+</div>
+<!-- Bill Categories -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+<div class="premium-card p-4 flex flex-col items-center text-center hover:bg-primary/5 transition-colors cursor-pointer">
+<div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center text-primary mb-3">
+<span class="material-symbols-outlined">lightbulb</span>
+</div>
+<p class="font-bold text-body-md">Utilities</p>
+</div>
+<div class="premium-card p-4 flex flex-col items-center text-center hover:bg-primary/5 transition-colors cursor-pointer">
+<div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center text-primary mb-3">
+<span class="material-symbols-outlined">smartphone</span>
+</div>
+<p class="font-bold text-body-md">Mobile Money</p>
+</div>
+<div class="premium-card p-4 flex flex-col items-center text-center hover:bg-primary/5 transition-colors cursor-pointer">
+<div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center text-primary mb-3">
+<span class="material-symbols-outlined">account_balance</span>
+</div>
+<p class="font-bold text-body-md">Bank Transfer</p>
+</div>
+<div class="premium-card p-4 flex flex-col items-center text-center hover:bg-primary/5 transition-colors cursor-pointer">
+<div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center text-primary mb-3">
+<span class="material-symbols-outlined">shopping_bag</span>
+</div>
+<p class="font-bold text-body-md">Merchants</p>
+</div>
+</div>
+</div>
+<!-- Payment History Table (Full Width) -->
+<div class="col-span-12">
+<div class="premium-card">
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+<h4 class="font-headline-sm">Payment History</h4>
+<div class="flex items-center gap-3">
+<div class="flex border border-outline-variant rounded-lg overflow-hidden bg-surface-container-low">
+<button class="px-4 py-1.5 text-label-md font-bold bg-primary text-white">All</button>
+<button class="px-4 py-1.5 text-label-md font-bold text-on-surface-variant hover:bg-surface-container-high transition-colors">Bills</button>
+<button class="px-4 py-1.5 text-label-md font-bold text-on-surface-variant hover:bg-surface-container-high transition-colors">Transfers</button>
+</div>
+<button class="flex items-center gap-2 px-4 py-1.5 border border-outline-variant rounded-lg text-label-md font-bold hover:bg-surface-container-low">
+<span class="material-symbols-outlined text-sm">filter_alt</span>
+                                Filter
+                            </button>
+<button class="flex items-center gap-2 px-4 py-1.5 border border-outline-variant rounded-lg text-label-md font-bold hover:bg-surface-container-low">
+<span class="material-symbols-outlined text-sm">download</span>
+                                Export
+                            </button>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead>
+<tr class="text-on-surface-variant border-b border-outline-variant">
+<th class="pb-4 font-bold text-label-md uppercase tracking-wider">Date</th>
+<th class="pb-4 font-bold text-label-md uppercase tracking-wider">Recipient</th>
+<th class="pb-4 font-bold text-label-md uppercase tracking-wider">Category</th>
+<th class="pb-4 font-bold text-label-md uppercase tracking-wider">Reference ID</th>
+<th class="pb-4 font-bold text-label-md uppercase tracking-wider">Amount</th>
+<th class="pb-4 font-bold text-label-md uppercase tracking-wider text-right">Status</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant">
+<!-- Row 1 -->
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="py-4 font-tabular-nums">28 Jan 2026</td>
+<td class="py-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-sm">bolt</span>
+</div>
+<span class="font-bold">Electric City Co.</span>
+</div>
+</td>
+<td class="py-4 text-on-surface-variant">Utilities</td>
+<td class="py-4 font-tabular-nums text-on-surface-variant">PAY-0938421</td>
+<td class="py-4 font-bold text-error">-$142.50</td>
+<td class="py-4 text-right">
+<span class="px-3 py-1 rounded-full bg-tertiary-fixed text-tertiary text-label-md font-bold">Completed</span>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="py-4 font-tabular-nums">27 Jan 2026</td>
+<td class="py-4">
+<div class="flex items-center gap-3">
+<img class="w-8 h-8 rounded-full object-cover" data-alt="Portrait of a young male professional, modern corporate aesthetic, clean lighting, blurred urban office background, high quality profile image." src="https://lh3.googleusercontent.com/aida-public/AB6AXuATIEkiRkjF_yVgzXcWu9XWCetR0G3NJXK5P5wYVWGdOCbLj2ck6hQkoysfo_lY2dHkLdCTGiHuHConszFRNh6IhXhaREGRXB5zCUn0iITZ-XZqC9zUV0oth3ARpaDQazBya-474z_XwTHQWIf1VXo_P-TAPeuwosWenfEs1njOoB0wLb-WJvOcUAJN1y2V_ZPP8pUp73GK9-rCURY7tZotUq8nUmo9YsUaEl8-ioDkdx83VHScPyHi"/>
+<span class="font-bold">Aan Wijaya</span>
+</div>
+</td>
+<td class="py-4 text-on-surface-variant">Personal Transfer</td>
+<td class="py-4 font-tabular-nums text-on-surface-variant">TRF-7742109</td>
+<td class="py-4 font-bold text-error">-$450.00</td>
+<td class="py-4 text-right">
+<span class="px-3 py-1 rounded-full bg-tertiary-fixed text-tertiary text-label-md font-bold">Completed</span>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="py-4 font-tabular-nums">26 Jan 2026</td>
+<td class="py-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-sm">wifi</span>
+</div>
+<span class="font-bold">FiberNet Solutions</span>
+</div>
+</td>
+<td class="py-4 text-on-surface-variant">Internet Bill</td>
+<td class="py-4 font-tabular-nums text-on-surface-variant">PAY-5512399</td>
+<td class="py-4 font-bold text-error">-$85.00</td>
+<td class="py-4 text-right">
+<span class="px-3 py-1 rounded-full bg-secondary-container text-on-secondary-container text-label-md font-bold">Pending</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="mt-6 flex justify-between items-center border-t border-outline-variant pt-6">
+<p class="text-on-surface-variant text-label-md">Showing 1 to 10 of 24 entries</p>
+<div class="flex items-center gap-2">
+<button class="w-10 h-10 flex items-center justify-center rounded-lg border border-outline-variant hover:bg-surface-container-high disabled:opacity-50" disabled="">
+<span class="material-symbols-outlined">chevron_left</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-lg bg-primary text-white font-bold">1</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-lg border border-outline-variant hover:bg-surface-container-high">2</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-lg border border-outline-variant hover:bg-surface-container-high">3</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-lg border border-outline-variant hover:bg-surface-container-high">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Confirmation Modal (New Payment) -->
+<div class="fixed inset-0 z-[100] hidden" id="paymentModal">
+<div class="absolute inset-0 bg-on-background/40 backdrop-blur-sm" onclick="toggleModal('paymentModal')"></div>
+<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md px-4">
+<div class="premium-card shadow-2xl relative overflow-hidden">
+<div class="absolute top-0 left-0 w-full h-2 bg-primary"></div>
+<div class="flex justify-between items-center mb-6">
+<h5 class="font-headline-sm">New Payment Confirmation</h5>
+<button class="text-on-surface-variant hover:text-error transition-colors" onclick="toggleModal('paymentModal')">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<div class="space-y-6">
+<div class="p-4 bg-surface-container-low rounded-xl flex items-center gap-4">
+<div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-3xl">contactless</span>
+</div>
+<div>
+<p class="text-label-md text-on-surface-variant uppercase tracking-wider font-bold">Paying To</p>
+<p class="font-bold text-body-lg">Electric City Co.</p>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="space-y-1">
+<p class="text-label-md text-on-surface-variant">Amount</p>
+<p class="font-bold text-lg">$142.50</p>
+</div>
+<div class="space-y-1 text-right">
+<p class="text-label-md text-on-surface-variant">Fee</p>
+<p class="font-bold text-lg">$0.00</p>
+</div>
+</div>
+<div class="space-y-1">
+<p class="text-label-md text-on-surface-variant">Payment Method</p>
+<div class="flex items-center gap-2 font-bold">
+<span class="material-symbols-outlined text-primary">credit_card</span>
+                            Visa Card Ending 4229
+                        </div>
+</div>
+<div class="pt-4 border-t border-outline-variant">
+<p class="text-[11px] text-on-surface-variant mb-4">By clicking confirm, you authorize NovaBank to process this transaction immediately. All payments are secured with 256-bit encryption.</p>
+<div class="flex gap-3">
+<button class="flex-1 py-3 bg-primary text-on-primary rounded-xl font-bold hover:opacity-90 transition-opacity" onclick="handlePaymentSuccess()">Confirm Payment</button>
+<button class="flex-1 py-3 bg-surface-container-high text-on-surface rounded-xl font-bold hover:bg-surface-container-highest transition-colors" onclick="toggleModal('paymentModal')">Cancel</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Success Toast (Hidden by default) -->
+<div class="fixed bottom-8 right-8 z-[110] translate-y-20 opacity-0 transition-all duration-500 ease-out" id="successToast">
+<div class="bg-tertiary text-on-tertiary px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<div>
+<p class="font-bold">Payment Successful!</p>
+<p class="text-xs opacity-90">Your transaction has been processed.</p>
+</div>
+</div>
+</div>
+<script>
+        function toggleModal(id) {
+            const modal = document.getElementById(id);
+            modal.classList.toggle('hidden');
+        }
+
+        function handlePaymentSuccess() {
+            toggleModal('paymentModal');
+            const toast = document.getElementById('successToast');
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+        
+        // Micro-interaction for hover effects on cards
+        document.querySelectorAll('.premium-card').forEach(card => {
+            card.addEventListener('mouseenter', () => {
+                card.style.transform = 'translateY(-2px)';
+                card.style.transition = 'transform 0.2s ease-out';
+            });
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = 'translateY(0)';
+            });
+        });
+    </script>
+</body></html>

@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>NovaBank | Deposits Management</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@100..900&display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-highest": "#d3e4fe",
+                        "on-primary-fixed": "#00174b",
+                        "on-primary": "#ffffff",
+                        "on-secondary-fixed": "#171c25",
+                        "secondary-container": "#dee2ef",
+                        "surface-container-low": "#eff4ff",
+                        "surface": "#f8f9ff",
+                        "on-primary-container": "#fefcff",
+                        "tertiary-container": "#00855b",
+                        "primary-fixed-dim": "#b4c5ff",
+                        "secondary-fixed-dim": "#c2c6d3",
+                        "inverse-primary": "#b4c5ff",
+                        "on-error": "#ffffff",
+                        "tertiary-fixed-dim": "#4edea3",
+                        "inverse-on-surface": "#eaf1ff",
+                        "outline": "#737685",
+                        "error-container": "#ffdad6",
+                        "tertiary-fixed": "#6ffbbe",
+                        "on-secondary": "#ffffff",
+                        "surface-container-high": "#dce9ff",
+                        "inverse-surface": "#213145",
+                        "primary-fixed": "#dbe1ff",
+                        "on-tertiary-fixed-variant": "#005236",
+                        "primary-container": "#3d6de6",
+                        "on-surface": "#0b1c30",
+                        "on-error-container": "#93000a",
+                        "primary": "#1853cc",
+                        "on-tertiary-fixed": "#002113",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary-container": "#60646f",
+                        "outline-variant": "#c3c6d6",
+                        "surface-variant": "#d3e4fe",
+                        "surface-container": "#e5eeff",
+                        "on-background": "#0b1c30",
+                        "surface-tint": "#1d55ce",
+                        "on-secondary-fixed-variant": "#424751",
+                        "secondary": "#5a5e69",
+                        "surface-dim": "#cbdbf5",
+                        "secondary-fixed": "#dee2ef",
+                        "background": "#f8f9ff",
+                        "on-surface-variant": "#434654",
+                        "on-primary-fixed-variant": "#003ea8",
+                        "error": "#ba1a1a",
+                        "tertiary": "#006947",
+                        "on-tertiary-container": "#f5fff6",
+                        "surface-bright": "#f8f9ff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "container-max": "1440px",
+                        "gutter": "24px",
+                        "card-padding": "24px",
+                        "margin-desktop": "32px",
+                        "margin-mobile": "16px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Plus Jakarta Sans"],
+                        "tabular-nums": ["Plus Jakarta Sans"],
+                        "body-lg": ["Plus Jakarta Sans"],
+                        "display-lg": ["Plus Jakarta Sans"],
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "headline-sm": ["Plus Jakarta Sans"],
+                        "label-md": ["Plus Jakarta Sans"]
+                    },
+                    "fontSize": {
+                        "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "tabular-nums": ["14px", {"fontWeight": "600"}],
+                        "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "headline-sm": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+                        "label-md": ["12px", {"lineHeight": "16px", "fontWeight": "500"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .card-shadow {
+            box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.05);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f8f9ff;
+        }
+    </style>
+</head>
+<body class="text-on-surface">
+<!-- TopNavBar -->
+<header class="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-margin-desktop h-16 bg-surface-container-lowest shadow-sm">
+<div class="flex items-center gap-8">
+<span class="font-display-lg text-display-lg font-bold text-primary">NovaBank</span>
+<nav class="hidden md:flex items-center gap-6">
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors duration-200" href="#">Dashboard</a>
+<a class="font-body-md text-body-md text-primary border-b-2 border-primary pb-1 font-bold" href="#">Accounts</a>
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors duration-200" href="#">Management</a>
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors duration-200" href="#">Transactions</a>
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors duration-200" href="#">Payments</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex -space-x-2 mr-4">
+<img class="w-8 h-8 rounded-full border-2 border-white object-cover" data-alt="A professional headshot of a business woman in a corporate office environment, with soft natural lighting and a high-end fintech aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBqxU1mdQi5UhKeGmouV8xAEpa76sEv48vSPuC1NsJTVwestRauq6h3eUFFRbWjoxmzbxpagf16Yq_tMHIeFJxukPLtWNuSO0paHMM9GFYSFE-C1GvMEGOG-ewnSwaUBnP2bOOSjanuJgPlzPfNUQccAHpv2g66gsi7XJD4PLxKtSzhC4c2RL8Dz9FbI_RxzHhXfc4ttwAfS7MaZ5kJoIgnCjUah9qoGq-CQ9Yr2S32Hum72O9fkVcR"/>
+<img class="w-8 h-8 rounded-full border-2 border-white object-cover" data-alt="A smiling young professional man in a tech office setting, clean-shaven, wearing a navy blue polo shirt, captured in a crisp modern photography style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAJl1xDrFCQyKwIX3qXvACMW8EwWn8F4Z7hv6fnX9bi0uPhBC7aeSPQXKsqx6c6yq8dQo-ToITEmr4ESbpIjKMZH6eljTSQZO4EFrZpqwtBu-thcABEGrS8KUgRepiH1-8hXZgo5wqfx8CLE8Q4d7po44JZljPn9J04akoYBcm7-oLRezGLMYJbQY1MBHiMB2LiDeCTYaeHotfg7GuY_x7EbvozTHHQbvo9xZuUQO_6kJCqsciFGQQg"/>
+<div class="w-8 h-8 rounded-full bg-primary-container text-white flex items-center justify-center text-[10px] border-2 border-white">+7</div>
+</div>
+<button class="flex items-center gap-2 bg-surface-container-low px-4 py-2 rounded-full font-body-md text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]">share</span> Share
+            </button>
+<div class="h-8 w-[1px] bg-outline-variant mx-2"></div>
+<span class="material-symbols-outlined cursor-pointer text-on-surface-variant">notifications</span>
+<span class="material-symbols-outlined cursor-pointer text-on-surface-variant">dark_mode</span>
+<img class="w-10 h-10 rounded-full border border-outline-variant object-cover" data-alt="A circular portrait of a senior executive male with glasses, looking professional and trustworthy, against a clean studio background, representative of high-level banking software users." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDWZ82VZWFfxfrgVGvOTTNoae0-si1DiiznOt2I2jnUpnuGFjBqPxq3hMh7BnNvGiRh5J1L7rxNRVXj_NaLNS5fmijPBlvamZQtX2sSdTVHHAH6aGjI9TaXhQcbiqLUhPktPAd5A9Ps45I6YYSMOjRN6r9DioR19aSv5mkacKPl_4f8Iejo3lK-3XLI6XWshSDbIHVSgG73o-kEHvbOhIZX2VMsqIM8szMr3M9K5Vqdmqg1YlT_Zk3f"/>
+</div>
+</header>
+<!-- SideNavBar -->
+<aside class="hidden lg:flex flex-col fixed left-0 top-16 h-[calc(100vh-64px)] w-64 p-4 bg-surface-container-low border-r border-outline-variant z-40">
+<div class="flex flex-col gap-2">
+<div class="flex items-center gap-3 bg-secondary-container text-on-secondary-container rounded-lg px-4 py-3 cursor-pointer">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+<span class="font-label-md text-label-md">Deposits</span>
+</div>
+<div class="flex items-center gap-3 text-on-surface-variant px-4 py-3 hover:bg-surface-container-high rounded-lg cursor-pointer transition-all hover:translate-x-1 duration-200">
+<span class="material-symbols-outlined">swap_horiz</span>
+<span class="font-label-md text-label-md">Transfers</span>
+</div>
+<div class="flex items-center gap-3 text-on-surface-variant px-4 py-3 hover:bg-surface-container-high rounded-lg cursor-pointer transition-all hover:translate-x-1 duration-200">
+<span class="material-symbols-outlined">payments</span>
+<span class="font-label-md text-label-md">Wallets</span>
+</div>
+<div class="flex items-center gap-3 text-on-surface-variant px-4 py-3 hover:bg-surface-container-high rounded-lg cursor-pointer transition-all hover:translate-x-1 duration-200">
+<span class="material-symbols-outlined">monitoring</span>
+<span class="font-label-md text-label-md">Analytics</span>
+</div>
+<div class="flex items-center gap-3 text-on-surface-variant px-4 py-3 hover:bg-surface-container-high rounded-lg cursor-pointer transition-all hover:translate-x-1 duration-200">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label-md text-label-md">Settings</span>
+</div>
+</div>
+<div class="mt-auto p-4 bg-primary rounded-xl text-white">
+<p class="font-headline-sm text-headline-sm mb-1">NovaBank Pro</p>
+<p class="font-label-md text-label-md opacity-80 mb-4">Unlock advanced analytics and global transfers.</p>
+<button class="w-full bg-white text-primary py-2 rounded-lg font-bold text-sm">Upgrade Now</button>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="lg:ml-64 pt-24 px-margin-desktop pb-12 min-h-screen">
+<div class="flex justify-between items-end mb-8">
+<div>
+<h1 class="font-display-lg text-display-lg text-on-surface">Manage <span class="text-primary">Deposits</span></h1>
+<p class="text-on-surface-variant font-body-md mt-1">Efficiently track, process, and analyze all incoming account deposits.</p>
+</div>
+<div class="flex gap-3">
+<button class="flex items-center gap-2 bg-primary px-6 py-3 rounded-xl text-white font-bold transition-all active:scale-95 shadow-md shadow-primary/20">
+<span class="material-symbols-outlined">add</span> Create Deposit
+                </button>
+<button class="flex items-center gap-2 bg-surface-container-highest px-6 py-3 rounded-xl text-primary font-bold">
+<span class="material-symbols-outlined">filter_list</span> Filters
+                </button>
+</div>
+</div>
+<!-- Metric Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+<div class="bg-white p-card-padding rounded-xl card-shadow border border-outline-variant/30">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-primary/10 rounded-lg text-primary">
+<span class="material-symbols-outlined">today</span>
+</div>
+<span class="material-symbols-outlined text-outline-variant cursor-pointer">more_vert</span>
+</div>
+<p class="text-on-surface-variant font-label-md mb-1 uppercase tracking-wider">Today's Deposits</p>
+<h2 class="font-display-lg text-display-lg text-on-surface">$24,500.00</h2>
+<div class="flex items-center gap-1 mt-2 text-tertiary">
+<span class="material-symbols-outlined text-[16px]">trending_up</span>
+<span class="font-tabular-nums text-tabular-nums">+12.4% from yesterday</span>
+</div>
+</div>
+<div class="bg-white p-card-padding rounded-xl card-shadow border border-outline-variant/30">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-primary/10 rounded-lg text-primary">
+<span class="material-symbols-outlined">calendar_view_week</span>
+</div>
+<span class="material-symbols-outlined text-outline-variant cursor-pointer">more_vert</span>
+</div>
+<p class="text-on-surface-variant font-label-md mb-1 uppercase tracking-wider">Weekly Deposits</p>
+<h2 class="font-display-lg text-display-lg text-on-surface">$142,370.00</h2>
+<div class="flex items-center gap-1 mt-2 text-tertiary">
+<span class="material-symbols-outlined text-[16px]">trending_up</span>
+<span class="font-tabular-nums text-tabular-nums">+5.2% vs last week</span>
+</div>
+</div>
+<div class="bg-white p-card-padding rounded-xl card-shadow border border-outline-variant/30">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-primary/10 rounded-lg text-primary">
+<span class="material-symbols-outlined">calendar_month</span>
+</div>
+<span class="material-symbols-outlined text-outline-variant cursor-pointer">more_vert</span>
+</div>
+<p class="text-on-surface-variant font-label-md mb-1 uppercase tracking-wider">Monthly Deposits</p>
+<h2 class="font-display-lg text-display-lg text-on-surface">$592,010.50</h2>
+<div class="flex items-center gap-1 mt-2 text-error">
+<span class="material-symbols-outlined text-[16px]">trending_down</span>
+<span class="font-tabular-nums text-tabular-nums">-2.1% vs last month</span>
+</div>
+</div>
+<div class="bg-white p-card-padding rounded-xl card-shadow border border-outline-variant/30">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-surface-container-highest rounded-lg text-primary">
+<span class="material-symbols-outlined">pending_actions</span>
+</div>
+<span class="material-symbols-outlined text-outline-variant cursor-pointer">more_vert</span>
+</div>
+<p class="text-on-surface-variant font-label-md mb-1 uppercase tracking-wider">Pending Approvals</p>
+<h2 class="font-display-lg text-display-lg text-on-surface">18 <span class="text-headline-sm font-normal text-on-surface-variant">items</span></h2>
+<p class="text-on-surface-variant font-tabular-nums mt-2">Totaling: $42,100.00</p>
+</div>
+</div>
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-8">
+<!-- Deposit Form -->
+<div class="xl:col-span-4 bg-white rounded-2xl card-shadow border border-outline-variant/30 overflow-hidden h-fit">
+<div class="p-6 border-b border-outline-variant/20 bg-surface">
+<h3 class="font-headline-sm text-headline-sm text-on-surface">New Deposit Entry</h3>
+<p class="text-on-surface-variant font-body-md">Create a manual record for bank verification.</p>
+</div>
+<form class="p-6 space-y-5">
+<div>
+<label class="block font-label-md text-label-md text-on-surface mb-2">Select Wallet</label>
+<select class="w-full bg-surface border border-outline-variant rounded-xl py-2.5 px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none">
+<option>Corporate Savings - **4821</option>
+<option>Operating Fund - **9012</option>
+<option>Reserve Account - **1123</option>
+</select>
+</div>
+<div>
+<label class="block font-label-md text-label-md text-on-surface mb-2">Customer / Entity</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-2.5 text-on-surface-variant">person</span>
+<input class="w-full bg-surface border border-outline-variant rounded-xl py-2.5 pl-10 pr-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none" placeholder="Search customer name..." type="text"/>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div>
+<label class="block font-label-md text-label-md text-on-surface mb-2">Amount</label>
+<input class="w-full bg-surface border border-outline-variant rounded-xl py-2.5 px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none" placeholder="0.00" type="number"/>
+</div>
+<div>
+<label class="block font-label-md text-label-md text-on-surface mb-2">Reference ID</label>
+<input class="w-full bg-surface border border-outline-variant rounded-xl py-2.5 px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none" placeholder="DEP-XXXX" type="text"/>
+</div>
+</div>
+<div>
+<label class="block font-label-md text-label-md text-on-surface mb-2">Notes (Internal)</label>
+<textarea class="w-full bg-surface border border-outline-variant rounded-xl py-2.5 px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none" placeholder="Add specific details for auditing..." rows="3"></textarea>
+</div>
+<div>
+<label class="block font-label-md text-label-md text-on-surface mb-2">Proof of Payment</label>
+<div class="border-2 border-dashed border-outline-variant rounded-xl p-8 flex flex-col items-center justify-center bg-surface hover:bg-surface-container-low transition-colors cursor-pointer group">
+<span class="material-symbols-outlined text-primary text-4xl mb-2 group-hover:scale-110 transition-transform">cloud_upload</span>
+<p class="font-body-md text-on-surface font-semibold">Click to upload or drag receipt</p>
+<p class="text-xs text-on-surface-variant mt-1">PNG, JPG or PDF up to 10MB</p>
+</div>
+</div>
+<button class="w-full bg-primary py-4 rounded-xl text-white font-bold text-lg transition-all hover:bg-primary/90 active:scale-95 shadow-lg shadow-primary/20" type="submit">Submit for Approval</button>
+</form>
+</div>
+<!-- Analytics & Table -->
+<div class="xl:col-span-8 flex flex-col gap-8">
+<!-- Trend Chart Section -->
+<div class="bg-white rounded-2xl card-shadow border border-outline-variant/30 p-6">
+<div class="flex justify-between items-center mb-6">
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Deposit Analytics</h3>
+<p class="text-on-surface-variant font-body-md">Comparing inbound volume vs. approval latency.</p>
+</div>
+<div class="flex bg-surface-container-low p-1 rounded-lg">
+<button class="px-4 py-1.5 rounded-md bg-white shadow-sm text-primary font-bold text-sm">Monthly</button>
+<button class="px-4 py-1.5 rounded-md text-on-surface-variant font-semibold text-sm">Quarterly</button>
+</div>
+</div>
+<!-- Chart Placeholder with Visual Elements -->
+<div class="relative h-64 w-full bg-gradient-to-t from-surface-container-low to-transparent rounded-xl overflow-hidden">
+<div class="absolute inset-x-0 bottom-0 px-6 pb-2 flex justify-between items-end h-full">
+<div class="w-8 bg-primary/20 rounded-t-lg h-[40%]"></div>
+<div class="w-8 bg-primary/20 rounded-t-lg h-[60%]"></div>
+<div class="w-8 bg-primary/40 rounded-t-lg h-[35%]"></div>
+<div class="w-8 bg-primary/60 rounded-t-lg h-[80%]"></div>
+<div class="w-8 bg-primary rounded-t-lg h-[55%]"></div>
+<div class="w-8 bg-primary/30 rounded-t-lg h-[45%]"></div>
+<div class="w-8 bg-primary/70 rounded-t-lg h-[90%]"></div>
+<div class="w-8 bg-primary/50 rounded-t-lg h-[65%]"></div>
+<div class="w-8 bg-primary/30 rounded-t-lg h-[40%]"></div>
+<div class="w-8 bg-primary/90 rounded-t-lg h-[75%]"></div>
+<div class="w-8 bg-primary rounded-t-lg h-[100%] animate-pulse"></div>
+<div class="w-8 bg-primary/10 rounded-t-lg h-[20%]"></div>
+</div>
+<!-- Line Chart Overlay -->
+<svg class="absolute inset-0 w-full h-full" preserveaspectratio="none" viewbox="0 0 100 100">
+<path class="text-primary" d="M0,80 Q10,70 20,75 T40,60 T60,65 T80,40 T100,50" fill="none" stroke="currentColor" stroke-width="2"></path>
+<circle class="text-primary" cx="80" cy="40" fill="currentColor" r="4"></circle>
+</svg>
+<div class="absolute top-10 left-3/4 bg-white p-2 rounded-lg card-shadow border border-outline-variant/20">
+<p class="text-[10px] font-bold text-on-surface-variant uppercase">Peak Day</p>
+<p class="text-xs font-bold text-primary">$12,400.00</p>
+</div>
+</div>
+<div class="flex justify-between mt-4 px-2">
+<span class="text-[11px] text-on-surface-variant font-bold">JAN</span>
+<span class="text-[11px] text-on-surface-variant font-bold">FEB</span>
+<span class="text-[11px] text-on-surface-variant font-bold">MAR</span>
+<span class="text-[11px] text-on-surface-variant font-bold">APR</span>
+<span class="text-[11px] text-on-surface-variant font-bold">MAY</span>
+<span class="text-[11px] text-on-surface-variant font-bold">JUN</span>
+<span class="text-[11px] text-on-surface-variant font-bold">JUL</span>
+<span class="text-[11px] text-on-surface-variant font-bold">AUG</span>
+<span class="text-[11px] text-on-surface-variant font-bold">SEP</span>
+<span class="text-[11px] text-on-surface-variant font-bold">OCT</span>
+<span class="text-[11px] text-on-surface-variant font-bold">NOV</span>
+<span class="text-[11px] text-on-surface-variant font-bold">DEC</span>
+</div>
+</div>
+<!-- Deposits Table -->
+<div class="bg-white rounded-2xl card-shadow border border-outline-variant/30 overflow-hidden">
+<div class="p-6 border-b border-outline-variant/20 flex flex-col md:flex-row md:items-center justify-between gap-4">
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Deposit History</h3>
+<div class="flex items-center gap-2">
+<div class="relative flex-1 md:w-64">
+<span class="material-symbols-outlined absolute left-3 top-2 text-on-surface-variant text-[18px]">search</span>
+<input class="w-full bg-surface-container-low border-none rounded-full py-1.5 pl-9 pr-4 text-sm focus:ring-2 focus:ring-primary/10 outline-none" placeholder="Search transactions..." type="text"/>
+</div>
+<button class="p-2 hover:bg-surface-container-low rounded-lg transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant">download</span>
+</button>
+</div>
+</div>
+<div class="overflow-x-auto custom-scrollbar">
+<table class="w-full text-left">
+<thead>
+<tr class="bg-surface text-on-surface-variant uppercase text-[11px] font-bold tracking-widest border-b border-outline-variant/20">
+<th class="px-6 py-4">Transaction ID</th>
+<th class="px-6 py-4">Customer</th>
+<th class="px-6 py-4">Amount</th>
+<th class="px-6 py-4">Date</th>
+<th class="px-6 py-4">Status</th>
+<th class="px-6 py-4 text-center">Workflow</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/10">
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="px-6 py-4 font-tabular-nums text-primary font-bold">DEP-902148</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center text-primary font-bold text-xs">SC</div>
+<span class="font-body-md text-on-surface">Starbucks Coffee</span>
+</div>
+</td>
+<td class="px-6 py-4 font-tabular-nums text-on-surface font-bold">$1,240.00</td>
+<td class="px-6 py-4 text-on-surface-variant text-sm">28 Jan 2026</td>
+<td class="px-6 py-4">
+<span class="px-3 py-1 rounded-full bg-tertiary/10 text-tertiary text-xs font-bold flex items-center w-fit gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span> Completed
+                                        </span>
+</td>
+<td class="px-6 py-4 text-center">
+<button class="p-2 text-outline-variant hover:text-primary"><span class="material-symbols-outlined">visibility</span></button>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="px-6 py-4 font-tabular-nums text-primary font-bold">DEP-902149</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center text-primary font-bold text-xs">AM</div>
+<span class="font-body-md text-on-surface">Apple Market</span>
+</div>
+</td>
+<td class="px-6 py-4 font-tabular-nums text-on-surface font-bold">$4,800.50</td>
+<td class="px-6 py-4 text-on-surface-variant text-sm">28 Jan 2026</td>
+<td class="px-6 py-4">
+<span class="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center w-fit gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span> Pending
+                                        </span>
+</td>
+<td class="px-6 py-4 flex justify-center gap-2">
+<button class="p-1.5 bg-tertiary/10 text-tertiary rounded-lg hover:bg-tertiary hover:text-white transition-all"><span class="material-symbols-outlined text-[18px]">check</span></button>
+<button class="p-1.5 bg-error/10 text-error rounded-lg hover:bg-error hover:text-white transition-all"><span class="material-symbols-outlined text-[18px]">close</span></button>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="px-6 py-4 font-tabular-nums text-primary font-bold">DEP-902150</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<img class="w-8 h-8 rounded-full object-cover" data-alt="A small circular logo for a creative agency, using minimalist typography and a modern blue and white color palette." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAt6df4RhoHFAPIdFM18E_rBJFvmSHNFSsUrejpEMuof9Z5v-8C52LuqcVbu_Xtc00H-wRxZbLZCNzrVjTOKZcyAnveO0SAtLV1R2O-OfJ-9vC65njQ1-n8Vi89FISyN4Kfr3kv7yHm7VpKdn1Hd8-lxakQJPb4wZAsOx_Db16XcxbdaotF4Roa-9UqevzxSJLCrcW-Vcq5KsddXLYFaLXlLyzEZlyy2Z1ggJME4p8y5ZxmKZhsyM8c"/>
+<span class="font-body-md text-on-surface">Nexus Digital</span>
+</div>
+</td>
+<td class="px-6 py-4 font-tabular-nums text-on-surface font-bold">$12,000.00</td>
+<td class="px-6 py-4 text-on-surface-variant text-sm">27 Jan 2026</td>
+<td class="px-6 py-4">
+<span class="px-3 py-1 rounded-full bg-outline-variant/20 text-on-surface-variant text-xs font-bold flex items-center w-fit gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-outline-variant"></span> Processing
+                                        </span>
+</td>
+<td class="px-6 py-4 text-center">
+<button class="p-2 text-outline-variant hover:text-primary"><span class="material-symbols-outlined">more_horiz</span></button>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="px-6 py-4 font-tabular-nums text-primary font-bold">DEP-902151</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center text-primary font-bold text-xs">JD</div>
+<span class="font-body-md text-on-surface">John Doe Inc.</span>
+</div>
+</td>
+<td class="px-6 py-4 font-tabular-nums text-on-surface font-bold">$350.00</td>
+<td class="px-6 py-4 text-on-surface-variant text-sm">27 Jan 2026</td>
+<td class="px-6 py-4">
+<span class="px-3 py-1 rounded-full bg-error/10 text-error text-xs font-bold flex items-center w-fit gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-error"></span> Rejected
+                                        </span>
+</td>
+<td class="px-6 py-4 text-center">
+<button class="p-2 text-outline-variant hover:text-error"><span class="material-symbols-outlined">info</span></button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="p-6 bg-surface border-t border-outline-variant/20 flex items-center justify-between">
+<span class="font-label-md text-on-surface-variant">Showing 1 to 4 of 24 deposits</span>
+<div class="flex items-center gap-4">
+<button class="p-2 border border-outline-variant rounded-lg hover:bg-surface-container-high disabled:opacity-30" disabled="">
+<span class="material-symbols-outlined">chevron_left</span>
+</button>
+<span class="font-bold text-sm">1 of 6</span>
+<button class="p-2 border border-outline-variant rounded-lg hover:bg-surface-container-high">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- FAB for quick action (Mobile only) -->
+<button class="fixed bottom-6 right-6 md:hidden w-14 h-14 bg-primary text-white rounded-full shadow-2xl flex items-center justify-center z-50 transition-transform active:scale-90">
+<span class="material-symbols-outlined text-2xl">add</span>
+</button>
+<script>
+        // Micro-interactions and Tab Logic
+        document.querySelectorAll('nav a').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                document.querySelectorAll('nav a').forEach(l => {
+                    l.classList.remove('text-primary', 'border-b-2', 'border-primary', 'font-bold');
+                    l.classList.add('text-on-surface-variant');
+                });
+                link.classList.add('text-primary', 'border-b-2', 'border-primary', 'font-bold');
+                link.classList.remove('text-on-surface-variant');
+            });
+        });
+
+        // Simple form validation visual cue
+        const depositForm = document.querySelector('form');
+        depositForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const btn = depositForm.querySelector('button[type="submit"]');
+            const originalText = btn.innerText;
+            btn.innerText = "Processing...";
+            btn.classList.add('opacity-70');
+            setTimeout(() => {
+                btn.innerText = "Success!";
+                btn.classList.replace('bg-primary', 'bg-tertiary');
+                setTimeout(() => {
+                    btn.innerText = originalText;
+                    btn.classList.replace('bg-tertiary', 'bg-primary');
+                    btn.classList.remove('opacity-70');
+                    depositForm.reset();
+                }, 2000);
+            }, 1500);
+        });
+    </script>
+</body></html>

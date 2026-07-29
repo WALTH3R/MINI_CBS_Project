@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     "wallets",
     "merchants",
     "rest_framework",
+    "corsheaders",
 ]
 
 AUTH_USER_MODEL = "accounts.User"
@@ -75,6 +76,7 @@ SIMPLE_JWT = {
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -82,6 +84,10 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+
+# The Angular dev server runs on a different origin (localhost:4200) than the API
+# (localhost:8000) — browsers block that cross-origin call unless explicitly allowed.
+CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=["http://localhost:4200"])
 
 ROOT_URLCONF = "cbs.urls"
 

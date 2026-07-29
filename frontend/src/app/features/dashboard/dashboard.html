@@ -1,0 +1,35 @@
+<nav class="flex h-20 w-full items-center justify-between border-b border-outline-variant bg-surface-container-lowest px-8">
+  <div class="flex items-center gap-2">
+    <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-white">
+      <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">account_balance</span>
+    </div>
+    <span class="text-[22px] font-bold text-primary">NovaBank</span>
+  </div>
+
+  @if (auth.currentUser(); as user) {
+    <div class="flex items-center gap-4">
+      <div class="text-right">
+        <p class="text-body-md font-semibold text-on-surface">{{ user.username }}</p>
+        <p class="text-label-md text-on-surface-variant">
+          {{ user.isStaff ? 'Admin' : user.role === 'AGENT' ? 'Agent' : 'Customer' }}
+        </p>
+      </div>
+      <button
+        (click)="logout()"
+        class="flex items-center gap-2 rounded-full bg-surface-container-high px-4 py-2 text-label-md text-on-surface-variant transition-colors hover:bg-error-container hover:text-on-error-container"
+      >
+        <span class="material-symbols-outlined text-lg">logout</span>
+        Sign out
+      </button>
+    </div>
+  }
+</nav>
+
+<main class="mx-auto max-w-container-max px-8 py-12">
+  @if (auth.currentUser(); as user) {
+    <h1 class="text-display-lg text-on-surface">Welcome, <span class="text-primary">{{ user.username }}</span></h1>
+    <p class="mt-2 text-body-md text-on-surface-variant">
+      You're signed in as {{ user.isStaff ? 'an admin' : user.role === 'AGENT' ? 'an agent' : 'a customer' }}. The rest of the dashboard is under construction.
+    </p>
+  }
+</main>
