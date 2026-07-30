@@ -3,7 +3,7 @@
     <h1 class="text-display-lg text-on-surface">Good day, <span class="text-primary">{{ user.username }}</span></h1>
     <p class="mt-1 text-body-md text-on-surface-variant">
       @if (auth.isCustomer()) {
-        Here's your wallet at a glance.
+        Here's your wallet Information.
       } @else if (auth.isAgent()) {
         Manage deposits, look up customers, and review activity.
       } @else {
@@ -21,6 +21,25 @@
     }
 
     @if (myWallet.wallet(); as wallet) {
+      <div class="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div class="rounded-xl bg-white p-card-padding card-shadow">
+          <p class="text-label-md text-on-surface-variant">Total deposited</p>
+          <p class="mt-1 text-headline-md text-tertiary">{{ stats().totalDeposited | currencyAmount:wallet.profile.currency }}</p>
+        </div>
+        <div class="rounded-xl bg-white p-card-padding card-shadow">
+          <p class="text-label-md text-on-surface-variant">Total transferred</p>
+          <p class="mt-1 text-headline-md text-on-surface">{{ stats().totalTransferred | currencyAmount:wallet.profile.currency }}</p>
+        </div>
+        <div class="rounded-xl bg-white p-card-padding card-shadow">
+          <p class="text-label-md text-on-surface-variant">Total paid in bills</p>
+          <p class="mt-1 text-headline-md text-error">{{ stats().totalPaidBills | currencyAmount:wallet.profile.currency }}</p>
+        </div>
+        <div class="rounded-xl bg-white p-card-padding card-shadow">
+          <p class="text-label-md text-on-surface-variant">Total transactions</p>
+          <p class="mt-1 text-headline-md text-on-surface">{{ stats().totalTransactions }}</p>
+        </div>
+      </div>
+
       <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <!-- Wallet summary card (Wallets screen, folded in per scope decision) -->
         <div class="rounded-xl bg-primary p-card-padding text-white card-shadow lg:col-span-1">
