@@ -1,13 +1,16 @@
 from django.db.models import Q
 from merchants.models import Transaction
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.generics import ListAPIView, ListCreateAPIView, RetrieveAPIView
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from accounts.models import Role
 from cbs.utils import get_object_or_400, parse_uuid
 from .models import Wallet, WalletProfile
 from .permissions import IsAgent, IsClient
+from .services import resolve_wallet_by_tag
 from .serializers import (
     DepositCreateSerializer, DepositSerializer,
     PaymentCreateSerializer, PaymentSerializer,
@@ -74,6 +77,23 @@ class MyWalletView(ListAPIView):
 
     def get_queryset(self):
         return Wallet.objects.filter(client=self.request.user).select_related("client", "profile").order_by("created_at")
+
+
+class RecipientLookupView(APIView):
+    """Resolve a wallet tag to the recipient's name before a transfer is confirmed — deliberately
+    returns nothing but a name, no balance or other account details."""
+    permission_classes = [IsClient]
+
+    def get(self, request, tag):
+        wallet = resolve_wallet_by_tag(tag)
+        if wallet.client.role != Role.CLIENT:
+            raise ValidationError("No customer found for this tag.")
+
+        return Response({
+            "tag": wallet.tag,
+            "first_name": wallet.client.first_name,
+            "name": wallet.client.last_name,
+        })
 
 
 class WalletDetailView(WalletOwnerOrAgentMixin, RetrieveAPIView):

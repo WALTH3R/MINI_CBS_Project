@@ -6,7 +6,9 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { AuthService } from '../../core/services/auth.service';
 import { MyWalletStore } from '../../core/services/my-wallet.store';
 import { TransferService } from '../../core/services/transfer.service';
+import { WalletService } from '../../core/services/wallet.service';
 import { Customer, CustomerWalletSummary } from '../../core/models/customer.model';
+import { RecipientPreview } from '../../core/models/wallet.model';
 import { Transfer, TransferDirection } from '../../core/models/transaction.model';
 import { CustomerWalletPicker, CustomerWalletSelection } from '../../shared/customer-wallet-picker/customer-wallet-picker';
 import { TransientSignal } from '../../shared/utils/transient-signal';
@@ -21,6 +23,7 @@ export class Transfers {
   protected readonly auth = inject(AuthService);
   protected readonly myWallet = inject(MyWalletStore);
   private readonly transferService = inject(TransferService);
+  private readonly walletService = inject(WalletService);
 
   // --- Customer: send money ---
   protected readonly toTag = signal('');
@@ -30,6 +33,11 @@ export class Transfers {
   protected readonly submitError = this.submitErrorMsg.value;
   private readonly lastTransferMsg = new TransientSignal<Transfer>();
   protected readonly lastTransfer = this.lastTransferMsg.value;
+
+  // --- Confirm-before-send ---
+  protected readonly resolvingRecipient = signal(false);
+  protected readonly recipientPreview = signal<RecipientPreview | null>(null);
+  protected readonly confirmOpen = signal(false);
 
   // --- Shared: history + filters ---
   protected readonly history = signal<Transfer[]>([]);
@@ -67,7 +75,34 @@ export class Transfers {
     this.history.set([]);
   }
 
-  submitTransfer(): void {
+  startSend(): void {
+    const wallet = this.myWallet.activeWallet();
+    if (!wallet || !this.toTag() || !this.amount() || this.resolvingRecipient()) {
+      return;
+    }
+
+    this.submitErrorMsg.set(null);
+    this.resolvingRecipient.set(true);
+
+    this.walletService.resolveRecipient(this.toTag()).subscribe({
+      next: (recipient) => {
+        this.recipientPreview.set(recipient);
+        this.resolvingRecipient.set(false);
+        this.confirmOpen.set(true);
+      },
+      error: () => {
+        this.resolvingRecipient.set(false);
+        this.submitErrorMsg.set('No customer found for this tag.');
+      },
+    });
+  }
+
+  cancelConfirm(): void {
+    this.confirmOpen.set(false);
+    this.recipientPreview.set(null);
+  }
+
+  confirmSend(): void {
     const wallet = this.myWallet.activeWallet();
     if (!wallet || !this.toTag() || !this.amount() || this.submitting()) {
       return;
@@ -82,11 +117,15 @@ export class Transfers {
         this.toTag.set('');
         this.amount.set('');
         this.submitting.set(false);
+        this.confirmOpen.set(false);
+        this.recipientPreview.set(null);
         this.myWallet.refresh().subscribe();
         this.loadHistoryFor(wallet.id);
       },
       error: (err: unknown) => {
         this.submitting.set(false);
+        this.confirmOpen.set(false);
+        this.recipientPreview.set(null);
         if (err instanceof HttpErrorResponse && Array.isArray(err.error)) {
           this.submitErrorMsg.set(err.error.join(' '));
         } else {

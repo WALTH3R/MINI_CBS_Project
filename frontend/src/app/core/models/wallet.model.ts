@@ -23,3 +23,10 @@ export interface WalletBalance {
   balance: string;
   currency: string;
 }
+
+/** Preview of who a tag belongs to, resolved before a transfer is confirmed — no balance included. */
+export interface RecipientPreview {
+  tag: string;
+  first_name: string;
+  name: string;
+}

@@ -3,7 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
-import { Wallet, WalletBalance, WalletProfile } from '../models/wallet.model';
+import { RecipientPreview, Wallet, WalletBalance, WalletProfile } from '../models/wallet.model';
 
 const BASE = `${environment.apiBaseUrl}/api/wallets`;
 const ACCOUNTS_BASE = `${environment.apiBaseUrl}/api/accounts`;
@@ -41,5 +41,9 @@ export class WalletService {
     return this.http.post<Wallet>(`${ACCOUNTS_BASE}/customers/${customerId}/wallets/`, {
       wallet_profile_id: walletProfileId,
     });
+  }
+
+  resolveRecipient(tag: string): Observable<RecipientPreview> {
+    return this.http.get<RecipientPreview>(`${BASE}/recipients/${tag}/`);
   }
 }

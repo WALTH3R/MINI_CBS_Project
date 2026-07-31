@@ -49,6 +49,42 @@ class MyWalletTests(BaseAPITestCase):
         self.assertEqual(response.data, [])
 
 
+class RecipientLookupTests(BaseAPITestCase):
+    def setUp(self):
+        self.profile = self.make_wallet_profile()
+        self.sender, _, _ = self.make_customer("sender", self.profile)
+        self.recipient, _, self.recipient_wallet = self.make_customer("recipient", self.profile)
+        self.recipient.first_name = "Jean"
+        self.recipient.last_name = "Dupont"
+        self.recipient.save()
+
+    def test_customer_can_resolve_a_recipient_tag_to_a_name(self):
+        self.auth_as(self.sender)
+        response = self.client.get(f"/api/wallets/recipients/{self.recipient_wallet.tag}/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["first_name"], "Jean")
+        self.assertEqual(response.data["name"], "Dupont")
+        self.assertEqual(response.data["tag"], self.recipient_wallet.tag)
+        self.assertNotIn("balance", response.data)
+
+    def test_unknown_tag_is_rejected(self):
+        self.auth_as(self.sender)
+        response = self.client.get("/api/wallets/recipients/does.not.exist/")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_merchant_tag_is_rejected(self):
+        merchant = self.make_merchant("WaterCo", self.make_agent("agent2"), self.profile)
+        self.auth_as(self.sender)
+        response = self.client.get(f"/api/wallets/recipients/{merchant.wallet.tag}/")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_agent_cannot_use_recipient_lookup(self):
+        self.auth_as(self.make_agent())
+        response = self.client.get(f"/api/wallets/recipients/{self.recipient_wallet.tag}/")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+
 class WalletProfileTests(BaseAPITestCase):
     def test_admin_can_create_profile_with_default_currency(self):
         self.auth_as(self.make_admin())
