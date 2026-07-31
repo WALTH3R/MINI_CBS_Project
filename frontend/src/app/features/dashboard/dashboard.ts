@@ -53,6 +53,15 @@ export class Dashboard {
     };
   });
 
+  // Mirrors the daily-limit check in wallets/services.py:do_transfer — outgoing transfers
+  // (direction DEBIT) dated today, in the browser's local calendar day.
+  protected readonly todayTransferredTotal = computed(() => {
+    const today = new Date().toDateString();
+    return this.transfers()
+      .filter((t) => t.direction === 'DEBIT' && new Date(t.created_at).toDateString() === today)
+      .reduce((total, t) => total + Number(t.amount), 0);
+  });
+
   constructor() {
     if (this.auth.isCustomer()) {
       this.myWallet.ensureLoaded().subscribe({
@@ -75,6 +84,14 @@ export class Dashboard {
       return 0;
     }
     return Math.min(100, (Number(wallet.balance) / max) * 100);
+  }
+
+  protected dailyTransferUsagePercent(wallet: Wallet): number {
+    const max = Number(wallet.profile.max_daily_transfer_total);
+    if (!max) {
+      return 0;
+    }
+    return Math.min(100, (this.todayTransferredTotal() / max) * 100);
   }
 
   private loadWalletData(walletId: string): void {

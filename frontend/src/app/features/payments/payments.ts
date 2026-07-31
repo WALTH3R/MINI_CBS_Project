@@ -38,10 +38,21 @@ export class Payments {
   protected readonly merchants = signal<Merchant[]>([]);
   protected readonly merchantsLoading = signal(true);
   protected readonly categoryFilter = signal<MerchantCategory | ''>('');
+  protected readonly merchantSearch = signal('');
   protected readonly visibleMerchants = computed(() => {
-    const active = this.merchants().filter((m) => m.is_active);
+    let visible = this.merchants().filter((m) => m.is_active);
+
     const category = this.categoryFilter();
-    return category ? active.filter((m) => m.category === category) : active;
+    if (category) {
+      visible = visible.filter((m) => m.category === category);
+    }
+
+    const search = this.merchantSearch().trim().toLowerCase();
+    if (search) {
+      visible = visible.filter((m) => m.name.toLowerCase().includes(search) || m.wallet_tag.toLowerCase().includes(search));
+    }
+
+    return visible;
   });
 
   // --- Customer: pay ---
