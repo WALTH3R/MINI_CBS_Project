@@ -14,15 +14,30 @@ class MyWalletTests(BaseAPITestCase):
         response = self.client.get("/api/wallets/mine/")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["id"], str(wallet.id))
-        self.assertEqual(response.data["tag"], wallet.tag)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["id"], str(wallet.id))
+        self.assertEqual(response.data[0]["tag"], wallet.tag)
+
+    def test_customer_with_multiple_wallets_gets_them_all(self):
+        eur_profile = self.make_wallet_profile(currency="EUR")
+        usd_profile = self.make_wallet_profile(name="USD Standard", currency="USD")
+        owner, _, eur_wallet = self.make_customer("multi", eur_profile)
+        from wallets.models import Wallet
+        usd_wallet = Wallet.objects.create(client=owner, profile=usd_profile, tag="multi.usd")
+        self.auth_as(owner)
+
+        response = self.client.get("/api/wallets/mine/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        ids = {w["id"] for w in response.data}
+        self.assertEqual(ids, {str(eur_wallet.id), str(usd_wallet.id)})
 
     def test_agent_has_no_wallet_of_their_own(self):
         self.auth_as(self.make_agent())
         response = self.client.get("/api/wallets/mine/")
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
-    def test_customer_with_no_wallet_gets_404(self):
+    def test_customer_with_no_wallet_gets_empty_list(self):
         # Shouldn't happen via the normal create flow, but the endpoint must not crash if it does.
         from django.contrib.auth import get_user_model
         from accounts.models import Role
@@ -30,7 +45,8 @@ class MyWalletTests(BaseAPITestCase):
         self.auth_as(user)
 
         response = self.client.get("/api/wallets/mine/")
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data, [])
 
 
 class WalletProfileTests(BaseAPITestCase):

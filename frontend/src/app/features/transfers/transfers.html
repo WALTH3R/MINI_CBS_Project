@@ -4,42 +4,20 @@
     @if (auth.isAgent()) {
       Look up a customer to review their transfer activity.
     } @else {
-      Send money to another NovaBank customer by their tag.
+      Send money to another BujaBank customer by their tag.
     }
   </p>
 </header>
 
 @if (auth.isAgent()) {
-  <div class="mb-6 rounded-xl bg-white p-card-padding card-shadow">
-    <h3 class="mb-4 text-headline-sm text-on-surface">Find a customer</h3>
-    <div class="relative max-w-md">
-      <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
-      <input
-        type="text"
-        [value]="searchTerm()"
-        (input)="onSearchInput($any($event.target).value)"
-        placeholder="Search by name, username, or tag"
-        class="w-full rounded-xl border-none bg-surface-container-low py-3 pl-10 pr-4 text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/30"
-      />
-    </div>
-    @if (searchResults().length > 0) {
-      <ul class="mt-3 flex max-w-md flex-col gap-1">
-        @for (customer of searchResults(); track customer.id) {
-          <li>
-            <button (click)="selectCustomer(customer)" class="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-surface-container-low">
-              <div>
-                <p class="text-body-md font-semibold text-on-surface">{{ customer.first_name }} {{ customer.name }}</p>
-                <p class="text-label-md text-on-surface-variant">{{ customer.tag }}</p>
-              </div>
-            </button>
-          </li>
-        }
-      </ul>
-    }
+  <div class="mb-6">
+    <app-customer-wallet-picker (walletSelected)="onWalletSelected($event)" (selectionCleared)="onSelectionCleared()" />
     @if (selectedCustomer(); as customer) {
-      <p class="mt-4 text-body-md text-on-surface-variant">
-        Showing transfers for <span class="font-semibold text-on-surface">{{ customer.first_name }} {{ customer.name }}</span> ({{ customer.tag }})
-      </p>
+      @if (selectedWallet(); as wallet) {
+        <p class="mt-4 text-body-md text-on-surface-variant">
+          Showing transfers for <span class="font-semibold text-on-surface">{{ customer.first_name }} {{ customer.name }}</span>'s {{ wallet.tag }} ({{ wallet.currency }}) wallet
+        </p>
+      }
     }
   </div>
 }
@@ -99,7 +77,7 @@
         Send
       </button>
     </div>
-    @if (myWallet.wallet(); as wallet) {
+    @if (myWallet.activeWallet(); as wallet) {
       <p class="mt-3 text-label-md text-on-surface-variant">Your balance: {{ wallet.balance }} {{ wallet.profile.currency }} — transfers only work between wallets of the same currency.</p>
     }
   </div>

@@ -1,7 +1,7 @@
 from django.db.models import Q
 from merchants.models import Transaction
-from rest_framework.exceptions import NotFound, PermissionDenied
-from rest_framework.generics import ListCreateAPIView, RetrieveAPIView
+from rest_framework.exceptions import PermissionDenied
+from rest_framework.generics import ListAPIView, ListCreateAPIView, RetrieveAPIView
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 
 from accounts.models import Role
@@ -66,16 +66,14 @@ class WalletScopedMixin:
             raise PermissionDenied(message)
 
 
-class MyWalletView(RetrieveAPIView):
-    """A logged-in customer's own wallet — the only way for them to discover their wallet's id."""
+class MyWalletView(ListAPIView):
+    """A logged-in customer's own wallets — how they discover wallet ids to act on. A customer may hold
+    more than one (e.g. one per currency)."""
     serializer_class = WalletSerializer
     permission_classes = [IsClient]
 
-    def get_object(self):
-        wallet = Wallet.objects.select_related("client", "profile").filter(client=self.request.user).first()
-        if wallet is None:
-            raise NotFound("You don't have a wallet yet.")
-        return wallet
+    def get_queryset(self):
+        return Wallet.objects.filter(client=self.request.user).select_related("client", "profile").order_by("created_at")
 
 
 class WalletDetailView(WalletOwnerOrAgentMixin, RetrieveAPIView):

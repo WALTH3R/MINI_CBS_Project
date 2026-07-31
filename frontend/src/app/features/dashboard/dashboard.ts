@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 
@@ -53,37 +53,39 @@ export class Dashboard {
 
   constructor() {
     if (this.auth.isCustomer()) {
-      this.loadCustomerData();
+      this.myWallet.ensureLoaded().subscribe({
+        error: () => this.loadError.set('Could not load your wallets.'),
+      });
+
+      // Re-runs on initial load and whenever the Shell's wallet switcher changes selection.
+      effect(() => {
+        const wallet = this.myWallet.activeWallet();
+        if (wallet) {
+          this.loadWalletData(wallet.id);
+        }
+      });
     }
   }
 
-  private loadCustomerData(): void {
+  private loadWalletData(walletId: string): void {
     this.loading.set(true);
     this.loadError.set(null);
 
-    this.myWallet.ensureLoaded().subscribe({
-      next: (wallet) => {
-        forkJoin({
-          deposits: this.depositService.list(wallet.id),
-          transfers: this.transferService.list(wallet.id),
-          payments: this.paymentService.list(wallet.id),
-        }).subscribe({
-          next: ({ deposits, transfers, payments }) => {
-            this.deposits.set(deposits);
-            this.transfers.set(transfers);
-            this.payments.set(payments);
-            this.recentTransfers.set(transfers.slice(0, 5));
-            this.recentPayments.set(payments.slice(0, 5));
-            this.loading.set(false);
-          },
-          error: () => {
-            this.loadError.set('Could not load your recent activity.');
-            this.loading.set(false);
-          },
-        });
+    forkJoin({
+      deposits: this.depositService.list(walletId),
+      transfers: this.transferService.list(walletId),
+      payments: this.paymentService.list(walletId),
+    }).subscribe({
+      next: ({ deposits, transfers, payments }) => {
+        this.deposits.set(deposits);
+        this.transfers.set(transfers);
+        this.payments.set(payments);
+        this.recentTransfers.set(transfers.slice(0, 5));
+        this.recentPayments.set(payments.slice(0, 5));
+        this.loading.set(false);
       },
       error: () => {
-        this.loadError.set('Could not load your wallet.');
+        this.loadError.set('Could not load your recent activity.');
         this.loading.set(false);
       },
     });

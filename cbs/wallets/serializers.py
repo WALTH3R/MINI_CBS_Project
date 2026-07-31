@@ -5,7 +5,9 @@ from rest_framework import serializers
 from accounts.models import Role
 from merchants.models import Transaction
 from .models import Wallet, WalletProfile
-from .services import do_deposit, do_pay_merchant, do_transfer, resolve_merchant_by_tag, resolve_wallet_by_tag
+from .services import (
+    do_deposit, do_pay_merchant, do_transfer, generate_unique_tag, resolve_merchant_by_tag, resolve_wallet_by_tag,
+)
 
 
 class WalletProfileSerializer(serializers.ModelSerializer):
@@ -25,6 +27,26 @@ class WalletSerializer(serializers.ModelSerializer):
         model = Wallet
         fields = ["id", "client", "profile", "tag", "balance", "created_at"]
         read_only_fields = fields
+
+
+class WalletCreateSerializer(serializers.Serializer):
+    """An agent adds a wallet to an existing customer — e.g. a second wallet for a new currency."""
+    wallet_profile_id = serializers.PrimaryKeyRelatedField(queryset=WalletProfile.objects.all(), write_only=True)
+
+    def validate_wallet_profile_id(self, wallet_profile):
+        customer = self.context["customer"]
+        already_has_currency = Wallet.objects.filter(
+            client=customer.user, profile__currency=wallet_profile.currency
+        ).exists()
+        if already_has_currency:
+            raise serializers.ValidationError(f"This customer already has a {wallet_profile.currency} wallet.")
+        return wallet_profile
+
+    def create(self, validated_data):
+        customer = self.context["customer"]
+        wallet_profile = validated_data["wallet_profile_id"]
+        tag = generate_unique_tag(customer.user.username)
+        return Wallet.objects.create(client=customer.user, profile=wallet_profile, tag=tag)
 
 
 class WalletBalanceSerializer(serializers.ModelSerializer):

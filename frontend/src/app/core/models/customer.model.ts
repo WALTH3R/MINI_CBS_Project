@@ -18,7 +18,7 @@ export interface Customer {
   place_of_birth: string;
   national_id_number: string;
   tag: string;
-  wallet: CustomerWalletSummary | null;
+  wallets: CustomerWalletSummary[];
   created_at: string;
 }
 

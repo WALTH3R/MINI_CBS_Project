@@ -1,26 +1,24 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, effect, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Subject, debounceTime, distinctUntilChanged, switchMap } from 'rxjs';
 
 import { AuthService } from '../../core/services/auth.service';
 import { MyWalletStore } from '../../core/services/my-wallet.store';
-import { CustomerService } from '../../core/services/customer.service';
 import { TransferService } from '../../core/services/transfer.service';
-import { Customer } from '../../core/models/customer.model';
+import { Customer, CustomerWalletSummary } from '../../core/models/customer.model';
 import { Transfer, TransferDirection } from '../../core/models/transaction.model';
+import { CustomerWalletPicker, CustomerWalletSelection } from '../../shared/customer-wallet-picker/customer-wallet-picker';
 
 @Component({
   selector: 'app-transfers',
   standalone: true,
-  imports: [FormsModule, DatePipe],
+  imports: [FormsModule, DatePipe, CustomerWalletPicker],
   templateUrl: './transfers.html',
 })
 export class Transfers {
   protected readonly auth = inject(AuthService);
   protected readonly myWallet = inject(MyWalletStore);
-  private readonly customerService = inject(CustomerService);
   private readonly transferService = inject(TransferService);
 
   // --- Customer: send money ---
@@ -36,56 +34,38 @@ export class Transfers {
   protected readonly historyError = signal<string | null>(null);
   protected readonly directionFilter = signal<TransferDirection | ''>('');
 
-  // --- Agent: customer lookup ---
-  protected readonly searchTerm = signal('');
-  protected readonly searchResults = signal<Customer[]>([]);
-  protected readonly searching = signal(false);
+  // --- Agent: selected customer + wallet ---
   protected readonly selectedCustomer = signal<Customer | null>(null);
-  private readonly search$ = new Subject<string>();
+  protected readonly selectedWallet = signal<CustomerWalletSummary | null>(null);
 
   constructor() {
     if (this.auth.isCustomer()) {
-      this.loadMyHistory();
-    }
-
-    this.search$
-      .pipe(
-        debounceTime(300),
-        distinctUntilChanged(),
-        switchMap((term) => {
-          if (!term.trim()) {
-            this.searching.set(false);
-            return [];
-          }
-          this.searching.set(true);
-          return this.customerService.list(term);
-        }),
-      )
-      .subscribe({
-        next: (results) => {
-          this.searchResults.set(results);
-          this.searching.set(false);
-        },
-        error: () => this.searching.set(false),
+      this.myWallet.ensureLoaded().subscribe({
+        error: () => this.historyError.set('Could not load your wallets.'),
       });
-  }
-
-  onSearchInput(term: string): void {
-    this.searchTerm.set(term);
-    this.search$.next(term);
-  }
-
-  selectCustomer(customer: Customer): void {
-    this.selectedCustomer.set(customer);
-    this.searchResults.set([]);
-    this.searchTerm.set('');
-    if (customer.wallet) {
-      this.loadHistoryFor(customer.wallet.id);
+      effect(() => {
+        const wallet = this.myWallet.activeWallet();
+        if (wallet) {
+          this.loadHistoryFor(wallet.id);
+        }
+      });
     }
+  }
+
+  onWalletSelected({ customer, wallet }: CustomerWalletSelection): void {
+    this.selectedCustomer.set(customer);
+    this.selectedWallet.set(wallet);
+    this.loadHistoryFor(wallet.id);
+  }
+
+  onSelectionCleared(): void {
+    this.selectedCustomer.set(null);
+    this.selectedWallet.set(null);
+    this.history.set([]);
   }
 
   submitTransfer(): void {
-    const wallet = this.myWallet.wallet();
+    const wallet = this.myWallet.activeWallet();
     if (!wallet || !this.toTag() || !this.amount() || this.submitting()) {
       return;
     }
@@ -100,7 +80,7 @@ export class Transfers {
         this.amount.set('');
         this.submitting.set(false);
         this.myWallet.refresh().subscribe();
-        this.loadMyHistory();
+        this.loadHistoryFor(wallet.id);
       },
       error: (err: unknown) => {
         this.submitting.set(false);
@@ -114,18 +94,10 @@ export class Transfers {
   }
 
   applyFilters(): void {
-    if (this.auth.isCustomer()) {
-      this.loadMyHistory();
-    } else if (this.selectedCustomer()?.wallet) {
-      this.loadHistoryFor(this.selectedCustomer()!.wallet!.id);
+    const wallet = this.auth.isCustomer() ? this.myWallet.activeWallet() : this.selectedWallet();
+    if (wallet) {
+      this.loadHistoryFor(wallet.id);
     }
-  }
-
-  private loadMyHistory(): void {
-    this.myWallet.ensureLoaded().subscribe({
-      next: (wallet) => this.loadHistoryFor(wallet.id),
-      error: () => this.historyError.set('Could not load your wallet.'),
-    });
   }
 
   private loadHistoryFor(walletId: string): void {

@@ -6,13 +6,15 @@ import { environment } from '../../../environments/environment';
 import { Wallet, WalletBalance, WalletProfile } from '../models/wallet.model';
 
 const BASE = `${environment.apiBaseUrl}/api/wallets`;
+const ACCOUNTS_BASE = `${environment.apiBaseUrl}/api/accounts`;
 
 @Injectable({ providedIn: 'root' })
 export class WalletService {
   private readonly http = inject(HttpClient);
 
-  getMine(): Observable<Wallet> {
-    return this.http.get<Wallet>(`${BASE}/mine/`);
+  /** A customer may hold more than one wallet (e.g. one per currency). */
+  getMine(): Observable<Wallet[]> {
+    return this.http.get<Wallet[]>(`${BASE}/mine/`);
   }
 
   getById(walletId: string): Observable<Wallet> {
@@ -29,5 +31,15 @@ export class WalletService {
 
   createProfile(payload: Omit<WalletProfile, 'id'>): Observable<WalletProfile> {
     return this.http.post<WalletProfile>(`${BASE}/profiles/`, payload);
+  }
+
+  listForCustomer(customerId: string): Observable<Wallet[]> {
+    return this.http.get<Wallet[]>(`${ACCOUNTS_BASE}/customers/${customerId}/wallets/`);
+  }
+
+  createForCustomer(customerId: string, walletProfileId: string): Observable<Wallet> {
+    return this.http.post<Wallet>(`${ACCOUNTS_BASE}/customers/${customerId}/wallets/`, {
+      wallet_profile_id: walletProfileId,
+    });
   }
 }

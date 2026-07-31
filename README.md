@@ -21,6 +21,7 @@ Technologies used:
 - `djangorestframework-simplejwt` for JWT authentication
 - PostgreSQL
 - GIT
+- Apidog
 - Docker
 - Angular 17
 
@@ -61,3 +62,7 @@ Some Sources :
 
 - For the Front End Design (https://dribbble.com/shots/27075109-NovaBank-Dashboard-Bank-Design) or view the templates in the "stitch_novabank_dashboard" folder
 - For the API Documentation (https://apidog.io/)
+
+Improvments :
+
+- An Front End was built using Angular 17 to make the system more user friendly and interactive.

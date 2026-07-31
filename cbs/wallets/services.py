@@ -112,6 +112,8 @@ def generate_unique_tag(base: str) -> str:
 
 _REFERENCE_PREFIXES = {"DEPOSIT": "DEP", "TRANSFER": "TRF", "PAYMENT": "PAY"}
 
+
+
 def generate_transaction_reference(type_: str) -> str:
     prefix = _REFERENCE_PREFIXES.get(type_, "TXN")
     alphabet = string.ascii_uppercase + string.digits

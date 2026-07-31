@@ -145,9 +145,10 @@ class CustomerDetailTests(BaseAPITestCase):
     def test_customer_detail_includes_wallet_info(self):
         self.auth_as(self.agent)
         response = self.client.get(f"/api/accounts/customers/{self.customer_profile.id}/")
-        self.assertEqual(response.data["wallet"]["id"], str(self.wallet.id))
-        self.assertEqual(response.data["wallet"]["tag"], self.wallet.tag)
-        self.assertEqual(response.data["wallet"]["currency"], self.wallet_profile.currency)
+        self.assertEqual(len(response.data["wallets"]), 1)
+        self.assertEqual(response.data["wallets"][0]["id"], str(self.wallet.id))
+        self.assertEqual(response.data["wallets"][0]["tag"], self.wallet.tag)
+        self.assertEqual(response.data["wallets"][0]["currency"], self.wallet_profile.currency)
 
     def test_customer_cannot_view_customer_detail(self):
         self.auth_as(self.customer_user)
@@ -187,6 +188,71 @@ class CustomerListTests(BaseAPITestCase):
         self.auth_as(self.jdoe_user)
         response = self.client.get("/api/accounts/customers/")
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+
+class CustomerWalletTests(BaseAPITestCase):
+    def setUp(self):
+        self.agent = self.make_agent()
+        self.eur_profile = self.make_wallet_profile(currency="EUR")
+        self.usd_profile = self.make_wallet_profile(name="USD Standard", currency="USD")
+        self.customer_user, self.customer_profile, self.eur_wallet = self.make_customer("jdoe", self.eur_profile)
+
+    def test_agent_can_add_a_second_wallet_in_a_new_currency(self):
+        self.auth_as(self.agent)
+        response = self.client.post(
+            f"/api/accounts/customers/{self.customer_profile.id}/wallets/",
+            {"wallet_profile_id": str(self.usd_profile.id)},
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["profile"]["currency"], "USD")
+        self.assertNotEqual(response.data["tag"], self.eur_wallet.tag)
+
+        wallets = Wallet.objects.filter(client=self.customer_user)
+        self.assertEqual(wallets.count(), 2)
+
+    def test_customer_now_shows_both_wallets(self):
+        self.auth_as(self.agent)
+        self.client.post(
+            f"/api/accounts/customers/{self.customer_profile.id}/wallets/",
+            {"wallet_profile_id": str(self.usd_profile.id)},
+        )
+        response = self.client.get(f"/api/accounts/customers/{self.customer_profile.id}/")
+        self.assertEqual(len(response.data["wallets"]), 2)
+
+    def test_duplicate_currency_wallet_rejected(self):
+        self.auth_as(self.agent)
+        response = self.client.post(
+            f"/api/accounts/customers/{self.customer_profile.id}/wallets/",
+            {"wallet_profile_id": str(self.eur_profile.id)},
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(Wallet.objects.filter(client=self.customer_user).count(), 1)
+
+    def test_customer_cannot_add_their_own_wallet(self):
+        self.auth_as(self.customer_user)
+        response = self.client.post(
+            f"/api/accounts/customers/{self.customer_profile.id}/wallets/",
+            {"wallet_profile_id": str(self.usd_profile.id)},
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_wallet_id_filter_isolates_currency_in_statistics(self):
+        usd_wallet = Wallet.objects.create(client=self.customer_user, profile=self.usd_profile, tag="jdoe.usd")
+        do_deposit(self.eur_wallet, Decimal("300.00"), self.agent)
+        do_deposit(usd_wallet, Decimal("500.00"), self.agent)
+        self.auth_as(self.agent)
+
+        eur_response = self.client.get(
+            f"/api/accounts/customers/{self.customer_profile.id}/transactions/statistics/"
+            f"?wallet_id={self.eur_wallet.id}"
+        )
+        usd_response = self.client.get(
+            f"/api/accounts/customers/{self.customer_profile.id}/transactions/statistics/"
+            f"?wallet_id={usd_wallet.id}"
+        )
+
+        self.assertEqual(Decimal(str(eur_response.data["total_deposited"])), Decimal("300.00"))
+        self.assertEqual(Decimal(str(usd_response.data["total_deposited"])), Decimal("500.00"))
 
 
 class ReportingTests(BaseAPITestCase):

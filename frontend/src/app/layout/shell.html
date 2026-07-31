@@ -45,6 +45,37 @@
 
     @if (auth.currentUser(); as user) {
       <div class="flex items-center gap-4">
+        @if (myWallet.wallets().length > 1) {
+          <div class="relative">
+            <button
+              (click)="toggleSwitcher()"
+              class="flex items-center gap-2 rounded-full bg-surface-container-high px-4 py-2 text-label-md text-on-surface transition-colors hover:bg-surface-container-highest"
+            >
+              <span class="material-symbols-outlined text-lg text-primary">account_balance_wallet</span>
+              @if (myWallet.activeWallet(); as active) {
+                <span>{{ active.tag }} · {{ active.profile.currency }}</span>
+              }
+              <span class="material-symbols-outlined text-lg">expand_more</span>
+            </button>
+
+            @if (switcherOpen()) {
+              <div class="absolute right-0 top-full z-10 mt-2 w-64 rounded-xl bg-white py-2 card-shadow">
+                @for (wallet of myWallet.wallets(); track wallet.id) {
+                  <button
+                    (click)="pickWallet(wallet.id)"
+                    class="flex w-full items-center justify-between px-4 py-2.5 text-left text-body-md transition-colors hover:bg-surface-container-low"
+                    [class.text-primary]="wallet.id === myWallet.activeWalletId()"
+                    [class.font-bold]="wallet.id === myWallet.activeWalletId()"
+                  >
+                    <span>{{ wallet.tag }} · {{ wallet.profile.currency }}</span>
+                    <span class="text-on-surface-variant">{{ wallet.balance | currencyAmount }}</span>
+                  </button>
+                }
+              </div>
+            }
+          </div>
+        }
+
         <div class="hidden text-right sm:block">
           <p class="text-body-md font-semibold text-on-surface">{{ user.username }}</p>
           <p class="text-label-md text-on-surface-variant">{{ roleLabel() }}</p>

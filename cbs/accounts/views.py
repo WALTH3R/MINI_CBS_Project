@@ -11,6 +11,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from cbs.utils import ValidatedUUIDLookupMixin, get_object_or_400
 from wallets.models import Wallet
 from wallets.permissions import IsAgent
+from wallets.serializers import WalletCreateSerializer, WalletSerializer
 from .auth import RoleTokenObtainPairSerializer
 from .models import CustomerProfile
 from .serializers import (
@@ -54,6 +55,41 @@ class AgentCreateView(CreateAPIView):
     permission_classes = [IsAdminUser]
 
 
+class CustomerWalletListCreateView(ListCreateAPIView):
+    """A customer can hold more than one wallet (e.g. one per currency); an agent manages that here."""
+    permission_classes = [IsAgent]
+
+    def get_customer(self):
+        if not hasattr(self, "_customer"):
+            self._customer = get_object_or_400(CustomerProfile, self.kwargs["customer_id"])
+        return self._customer
+
+    def get_queryset(self):
+        return Wallet.objects.filter(client=self.get_customer().user).select_related("profile").order_by("created_at")
+
+    def get_serializer_class(self):
+        return WalletCreateSerializer if self.request.method == "POST" else WalletSerializer
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context["customer"] = self.get_customer()
+        return context
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        wallet = serializer.save()
+        return Response(WalletSerializer(wallet).data, status=201)
+
+
+def _customer_wallets(customer, params):
+    wallets = Wallet.objects.filter(client=customer.user)
+    wallet_id = params.get("wallet_id")
+    if wallet_id:
+        wallets = wallets.filter(id=wallet_id)
+    return wallets
+
+
 def _filter_transactions(qs, params, include_type=True):
     if include_type:
         type_ = params.get("type")
@@ -84,7 +120,7 @@ class CustomerTransactionListView(ListAPIView):
         return self._customer
 
     def get_queryset(self):
-        wallets = Wallet.objects.filter(client=self.get_customer().user)
+        wallets = _customer_wallets(self.get_customer(), self.request.query_params)
         qs = Transaction.objects.filter(Q(from_wallet__in=wallets) | Q(to_wallet__in=wallets))
         qs = _filter_transactions(qs, self.request.query_params)
         return qs.order_by("-created_at")
@@ -95,7 +131,7 @@ class CustomerTransactionStatisticsView(APIView):
 
     def get(self, request, customer_id):
         customer = get_object_or_400(CustomerProfile, customer_id)
-        wallets = Wallet.objects.filter(client=customer.user)
+        wallets = _customer_wallets(customer, request.query_params)
 
         # Unless the caller explicitly filters by status, these totals should only
         # reflect money that actually moved — a FAILED payment attempt (see Topic 4)

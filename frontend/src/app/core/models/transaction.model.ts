@@ -70,4 +70,5 @@ export interface TransactionFilters {
   ordering?: 'created_at';
   type?: TransactionType;
   status?: TransactionStatus;
+  wallet_id?: string;
 }
