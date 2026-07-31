@@ -50,6 +50,20 @@
           <p class="mt-4 text-display-lg text-white">{{ wallet.balance | currencyAmount:wallet.profile.currency }}</p>
           <p class="mt-1 text-label-md text-white/70">Tag: {{ wallet.tag }}</p>
 
+          <div class="mt-5">
+            <div class="flex items-center justify-between text-label-md text-white/70">
+              <span>Balance limit</span>
+              <span>{{ balanceUsagePercent(wallet) | number:'1.0-0' }}% used</span>
+            </div>
+            <div class="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-white/20">
+              <div
+                class="h-full rounded-full bg-white transition-[width]"
+                [style.width.%]="balanceUsagePercent(wallet)"
+              ></div>
+            </div>
+            <p class="mt-1.5 text-label-md text-white/60">Up to {{ wallet.profile.max_balance | currencyAmount:wallet.profile.currency }}</p>
+          </div>
+
           <div class="mt-6 grid grid-cols-2 gap-3 border-t border-white/20 pt-4 text-label-md">
             <div>
               <p class="text-white/60">Max transfer</p>

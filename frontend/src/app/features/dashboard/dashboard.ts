@@ -1,4 +1,5 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
+import { DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 
@@ -8,13 +9,14 @@ import { DepositService } from '../../core/services/deposit.service';
 import { TransferService } from '../../core/services/transfer.service';
 import { PaymentService } from '../../core/services/payment.service';
 import { Deposit, Transfer, Payment } from '../../core/models/transaction.model';
+import { Wallet } from '../../core/models/wallet.model';
 import { CurrencyAmountPipe } from '../../shared/pipes/currency-amount.pipe';
 import { StatusBadge } from '../../shared/status-badge/status-badge';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [RouterLink, CurrencyAmountPipe, StatusBadge],
+  imports: [RouterLink, DecimalPipe, CurrencyAmountPipe, StatusBadge],
   templateUrl: './dashboard.html',
 })
 export class Dashboard {
@@ -65,6 +67,14 @@ export class Dashboard {
         }
       });
     }
+  }
+
+  protected balanceUsagePercent(wallet: Wallet): number {
+    const max = Number(wallet.profile.max_balance);
+    if (!max) {
+      return 0;
+    }
+    return Math.min(100, (Number(wallet.balance) / max) * 100);
   }
 
   private loadWalletData(walletId: string): void {
