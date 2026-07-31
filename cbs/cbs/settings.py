@@ -30,7 +30,11 @@ SECRET_KEY = env("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool("DEBUG", default=True)
 
-ALLOWED_HOSTS = []
+# Empty ALLOWED_HOSTS only works locally because Django auto-allows localhost when DEBUG=True.
+# Render sets RENDER_EXTERNAL_HOSTNAME itself, so no manual host config is needed there.
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
+if render_host := env("RENDER_EXTERNAL_HOSTNAME", default=None):
+    ALLOWED_HOSTS.append(render_host)
 
 
 # Application definition
@@ -76,6 +80,7 @@ SIMPLE_JWT = {
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -124,6 +129,11 @@ DATABASES = {
     }
 }
 
+# sqlite doesn't understand sslmode, so only set it for postgres (Neon requires SSL in prod;
+# "prefer" is a safe local no-op — it upgrades to SSL only if the server offers it).
+if "postgresql" in DATABASES["default"]["ENGINE"]:
+    DATABASES["default"]["OPTIONS"] = {"sslmode": env("DB_SSLMODE", default="prefer")}
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
@@ -160,6 +170,12 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
 STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+}
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
