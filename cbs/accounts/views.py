@@ -11,7 +11,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from cbs.utils import ValidatedUUIDLookupMixin, get_object_or_400
 from wallets.models import Wallet
 from wallets.permissions import IsAgent
-from wallets.serializers import WalletCreateSerializer, WalletSerializer
+from wallets.serializers import WalletCreateSerializer, WalletCreationRequestSerializer, WalletSerializer
 from .auth import RoleTokenObtainPairSerializer
 from .models import CustomerProfile
 from .serializers import (
@@ -73,13 +73,14 @@ class CustomerWalletListCreateView(ListCreateAPIView):
     def get_serializer_context(self):
         context = super().get_serializer_context()
         context["customer"] = self.get_customer()
+        context["requested_by"] = self.request.user
         return context
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        wallet = serializer.save()
-        return Response(WalletSerializer(wallet).data, status=201)
+        wallet_request = serializer.save()
+        return Response(WalletCreationRequestSerializer(wallet_request).data, status=201)
 
 
 def _customer_wallets(customer, params):

@@ -8,10 +8,12 @@ import { MyWalletStore } from '../../core/services/my-wallet.store';
 import { DepositService } from '../../core/services/deposit.service';
 import { TransferService } from '../../core/services/transfer.service';
 import { PaymentService } from '../../core/services/payment.service';
+import { WalletService } from '../../core/services/wallet.service';
 import { Deposit, Transfer, Payment } from '../../core/models/transaction.model';
-import { Wallet } from '../../core/models/wallet.model';
+import { Wallet, WalletRequest } from '../../core/models/wallet.model';
 import { CurrencyAmountPipe } from '../../shared/pipes/currency-amount.pipe';
 import { StatusBadge } from '../../shared/status-badge/status-badge';
+import { TransientSignal } from '../../shared/utils/transient-signal';
 
 @Component({
   selector: 'app-dashboard',
@@ -25,11 +27,18 @@ export class Dashboard {
   private readonly depositService = inject(DepositService);
   private readonly transferService = inject(TransferService);
   private readonly paymentService = inject(PaymentService);
+  private readonly walletService = inject(WalletService);
 
   protected readonly loading = signal(false);
   protected readonly loadError = signal<string | null>(null);
   protected readonly recentTransfers = signal<Transfer[]>([]);
   protected readonly recentPayments = signal<Payment[]>([]);
+
+  // --- Pending wallet requests (an agent opened a wallet; needs the customer's confirmation) ---
+  protected readonly pendingRequests = signal<WalletRequest[]>([]);
+  protected readonly decidingRequestId = signal<string | null>(null);
+  private readonly requestErrorMsg = new TransientSignal<string>();
+  protected readonly requestError = this.requestErrorMsg.value;
 
   private readonly deposits = signal<Deposit[]>([]);
   private readonly transfers = signal<Transfer[]>([]);
@@ -75,7 +84,50 @@ export class Dashboard {
           this.loadWalletData(wallet.id);
         }
       });
+
+      // Account-level, not wallet-scoped — loaded once, independent of the active wallet.
+      this.walletService.listMyRequests().subscribe({
+        next: (requests) => this.pendingRequests.set(requests),
+        error: () => this.requestErrorMsg.set('Could not load pending wallet requests.'),
+      });
     }
+  }
+
+  confirmWalletRequest(request: WalletRequest): void {
+    if (this.decidingRequestId()) {
+      return;
+    }
+    this.decidingRequestId.set(request.id);
+
+    this.walletService.confirmRequest(request.id).subscribe({
+      next: (wallet) => {
+        this.pendingRequests.update((requests) => requests.filter((r) => r.id !== request.id));
+        this.decidingRequestId.set(null);
+        this.myWallet.refresh().subscribe(() => this.myWallet.selectWallet(wallet.id));
+      },
+      error: () => {
+        this.decidingRequestId.set(null);
+        this.requestErrorMsg.set('Could not confirm this wallet request. Please try again.');
+      },
+    });
+  }
+
+  declineWalletRequest(request: WalletRequest): void {
+    if (this.decidingRequestId()) {
+      return;
+    }
+    this.decidingRequestId.set(request.id);
+
+    this.walletService.declineRequest(request.id).subscribe({
+      next: () => {
+        this.pendingRequests.update((requests) => requests.filter((r) => r.id !== request.id));
+        this.decidingRequestId.set(null);
+      },
+      error: () => {
+        this.decidingRequestId.set(null);
+        this.requestErrorMsg.set('Could not decline this wallet request. Please try again.');
+      },
+    });
   }
 
   protected balanceUsagePercent(wallet: Wallet): number {

@@ -30,3 +30,14 @@ export interface RecipientPreview {
   first_name: string;
   name: string;
 }
+
+export type WalletRequestStatus = 'PENDING' | 'CONFIRMED' | 'DECLINED';
+
+/** An agent-initiated wallet that doesn't exist yet — the customer must confirm or decline it. */
+export interface WalletRequest {
+  id: string;
+  status: WalletRequestStatus;
+  wallet_profile: WalletProfile;
+  requested_by: string;
+  created_at: string;
+}

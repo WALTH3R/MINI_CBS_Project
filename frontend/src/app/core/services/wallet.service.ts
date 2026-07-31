@@ -3,7 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
-import { RecipientPreview, Wallet, WalletBalance, WalletProfile } from '../models/wallet.model';
+import { RecipientPreview, Wallet, WalletBalance, WalletProfile, WalletRequest } from '../models/wallet.model';
 
 const BASE = `${environment.apiBaseUrl}/api/wallets`;
 const ACCOUNTS_BASE = `${environment.apiBaseUrl}/api/accounts`;
@@ -37,13 +37,26 @@ export class WalletService {
     return this.http.get<Wallet[]>(`${ACCOUNTS_BASE}/customers/${customerId}/wallets/`);
   }
 
-  createForCustomer(customerId: string, walletProfileId: string): Observable<Wallet> {
-    return this.http.post<Wallet>(`${ACCOUNTS_BASE}/customers/${customerId}/wallets/`, {
+  /** Doesn't create a wallet directly — creates a request the customer must confirm. */
+  createForCustomer(customerId: string, walletProfileId: string): Observable<WalletRequest> {
+    return this.http.post<WalletRequest>(`${ACCOUNTS_BASE}/customers/${customerId}/wallets/`, {
       wallet_profile_id: walletProfileId,
     });
   }
 
   resolveRecipient(tag: string): Observable<RecipientPreview> {
     return this.http.get<RecipientPreview>(`${BASE}/recipients/${tag}/`);
+  }
+
+  listMyRequests(): Observable<WalletRequest[]> {
+    return this.http.get<WalletRequest[]>(`${BASE}/requests/mine/`);
+  }
+
+  confirmRequest(requestId: string): Observable<Wallet> {
+    return this.http.post<Wallet>(`${BASE}/requests/${requestId}/confirm/`, {});
+  }
+
+  declineRequest(requestId: string): Observable<WalletRequest> {
+    return this.http.post<WalletRequest>(`${BASE}/requests/${requestId}/decline/`, {});
   }
 }

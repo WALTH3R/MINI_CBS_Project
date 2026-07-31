@@ -47,6 +47,8 @@ export class CustomerWalletPicker {
   protected readonly creating = signal(false);
   private readonly createErrorMsg = new TransientSignal<string>();
   protected readonly createError = this.createErrorMsg.value;
+  private readonly requestSentMsg = new TransientSignal<string>();
+  protected readonly requestSent = this.requestSentMsg.value;
 
   constructor() {
     this.search$
@@ -97,6 +99,7 @@ export class CustomerWalletPicker {
     this.selectedWalletId.set(null);
     this.showCreateForm.set(false);
     this.createErrorMsg.set(null);
+    this.requestSentMsg.set(null);
     this.selectionCleared.emit();
   }
 
@@ -117,22 +120,17 @@ export class CustomerWalletPicker {
     this.creating.set(true);
     this.createErrorMsg.set(null);
 
+    // No wallet exists yet — the customer still has to confirm this request.
     this.walletService.createForCustomer(customer.id, profileId).subscribe({
-      next: (wallet) => {
-        this.customerService.getById(customer.id).subscribe((fresh) => {
-          this.selectedCustomer.set(fresh);
-          this.creating.set(false);
-          this.showCreateForm.set(false);
-          this.newWalletProfileId.set('');
-          const freshWallet = fresh.wallets.find((w) => w.id === wallet.id);
-          if (freshWallet) {
-            this.emitSelection(fresh, freshWallet);
-          }
-        });
+      next: () => {
+        this.creating.set(false);
+        this.showCreateForm.set(false);
+        this.newWalletProfileId.set('');
+        this.requestSentMsg.set('Wallet request sent — the customer needs to confirm it.');
       },
       error: () => {
         this.creating.set(false);
-        this.createErrorMsg.set('Could not create this wallet. It may already exist for this currency.');
+        this.createErrorMsg.set('Could not send this request. The customer may already have or be awaiting a wallet in this currency.');
       },
     });
   }

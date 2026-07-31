@@ -49,6 +49,77 @@ class MyWalletTests(BaseAPITestCase):
         self.assertEqual(response.data, [])
 
 
+class WalletCreationRequestTests(BaseAPITestCase):
+    def setUp(self):
+        from wallets.models import WalletCreationRequest
+
+        self.WalletCreationRequest = WalletCreationRequest
+        self.agent = self.make_agent()
+        self.usd_profile = self.make_wallet_profile(name="USD Standard", currency="USD")
+        self.eur_profile = self.make_wallet_profile(name="EUR Standard", currency="EUR")
+        self.customer, _, self.eur_wallet = self.make_customer("jdoe", self.eur_profile)
+        self.other_customer, _, _ = self.make_customer("other", self.eur_profile)
+
+        self.request = self.WalletCreationRequest.objects.create(
+            customer=self.customer, wallet_profile=self.usd_profile, requested_by=self.agent,
+        )
+
+    def test_customer_sees_own_pending_request(self):
+        self.auth_as(self.customer)
+        response = self.client.get("/api/wallets/requests/mine/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["status"], "PENDING")
+        self.assertEqual(response.data[0]["wallet_profile"]["currency"], "USD")
+        self.assertEqual(response.data[0]["requested_by"], self.agent.username)
+
+    def test_other_customer_does_not_see_it(self):
+        self.auth_as(self.other_customer)
+        response = self.client.get("/api/wallets/requests/mine/")
+        self.assertEqual(response.data, [])
+
+    def test_confirm_creates_wallet_and_marks_confirmed(self):
+        self.auth_as(self.customer)
+        response = self.client.post(f"/api/wallets/requests/{self.request.id}/confirm/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["profile"]["currency"], "USD")
+
+        self.request.refresh_from_db()
+        self.assertEqual(self.request.status, self.WalletCreationRequest.Status.CONFIRMED)
+        self.assertIsNotNone(self.request.wallet)
+        self.assertIsNotNone(self.request.decided_at)
+
+    def test_decline_creates_no_wallet(self):
+        self.auth_as(self.customer)
+        response = self.client.post(f"/api/wallets/requests/{self.request.id}/decline/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["status"], "DECLINED")
+
+        self.request.refresh_from_db()
+        self.assertEqual(self.request.status, self.WalletCreationRequest.Status.DECLINED)
+        self.assertIsNone(self.request.wallet)
+
+    def test_other_customer_cannot_confirm(self):
+        self.auth_as(self.other_customer)
+        response = self.client.post(f"/api/wallets/requests/{self.request.id}/confirm/")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_agent_cannot_confirm(self):
+        self.auth_as(self.agent)
+        response = self.client.post(f"/api/wallets/requests/{self.request.id}/confirm/")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_already_decided_request_cannot_be_decided_again(self):
+        self.auth_as(self.customer)
+        self.client.post(f"/api/wallets/requests/{self.request.id}/confirm/")
+
+        response = self.client.post(f"/api/wallets/requests/{self.request.id}/decline/")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
 class RecipientLookupTests(BaseAPITestCase):
     def setUp(self):
         self.profile = self.make_wallet_profile()

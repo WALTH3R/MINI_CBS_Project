@@ -20,6 +20,45 @@
       </div>
     }
 
+    @if (requestError()) {
+      <div class="mb-6 rounded-lg border border-error/20 bg-error-container px-4 py-3 text-body-md text-on-error-container">
+        {{ requestError() }}
+      </div>
+    }
+
+    @if (pendingRequests().length > 0) {
+      <div class="mb-6 flex flex-col gap-3">
+        @for (req of pendingRequests(); track req.id) {
+          <div class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-secondary/20 bg-secondary-container/40 px-4 py-3">
+            <div class="flex items-start gap-2">
+              <span class="material-symbols-outlined text-on-secondary-container">notifications</span>
+              <p class="text-body-md text-on-secondary-container">
+                <span class="font-semibold">{{ req.requested_by }}</span> wants to open a
+                <span class="font-semibold">{{ req.wallet_profile.currency }}</span> wallet
+                ({{ req.wallet_profile.name }}) for you.
+              </p>
+            </div>
+            <div class="flex gap-2">
+              <button
+                (click)="declineWalletRequest(req)"
+                [disabled]="decidingRequestId() === req.id"
+                class="rounded-lg bg-white px-4 py-2 text-label-md font-bold text-on-surface-variant disabled:opacity-60"
+              >
+                Decline
+              </button>
+              <button
+                (click)="confirmWalletRequest(req)"
+                [disabled]="decidingRequestId() === req.id"
+                class="rounded-lg bg-primary px-4 py-2 text-label-md font-bold text-white disabled:opacity-60"
+              >
+                {{ decidingRequestId() === req.id ? 'Confirming…' : 'Confirm' }}
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+    }
+
     @if (myWallet.activeWallet(); as wallet) {
       <div class="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div class="rounded-xl bg-white p-card-padding card-shadow">

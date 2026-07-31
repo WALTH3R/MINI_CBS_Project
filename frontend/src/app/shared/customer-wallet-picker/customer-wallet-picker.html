@@ -67,6 +67,13 @@
       <p class="mt-4 text-body-md text-on-surface-variant">This customer has no wallet yet.</p>
     }
 
+    @if (requestSent()) {
+      <div class="mt-4 flex items-start gap-2 rounded-lg border border-tertiary/20 bg-tertiary-fixed-dim/10 px-4 py-3">
+        <span class="material-symbols-outlined text-tertiary">mark_email_read</span>
+        <p class="text-body-md text-on-surface">{{ requestSent() }}</p>
+      </div>
+    }
+
     @if (allowCreate()) {
       @if (!showCreateForm()) {
         <button (click)="openCreateForm()" class="mt-4 flex items-center gap-1 text-label-md font-bold text-primary">
@@ -86,6 +93,7 @@
               <option [value]="profile.id">{{ profile.name }} · {{ profile.currency }}</option>
             }
           </select>
+          <p class="mt-2 text-label-md text-on-surface-variant">The customer will need to confirm this before the wallet is created.</p>
 
           @if (createError()) {
             <p class="mt-2 text-label-md text-error">{{ createError() }}</p>
@@ -97,7 +105,7 @@
               [disabled]="creating() || !newWalletProfileId()"
               class="rounded-lg bg-primary px-4 py-2 text-label-md font-bold text-white disabled:opacity-60"
             >
-              {{ creating() ? 'Creating…' : 'Create wallet' }}
+              {{ creating() ? 'Sending…' : 'Send request' }}
             </button>
             <button (click)="showCreateForm.set(false)" class="rounded-lg px-4 py-2 text-label-md text-on-surface-variant hover:bg-surface-container-high">
               Cancel

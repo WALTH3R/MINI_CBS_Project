@@ -1,4 +1,5 @@
 from django.db.models import Q
+from django.utils import timezone
 from merchants.models import Transaction
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.generics import ListAPIView, ListCreateAPIView, RetrieveAPIView
@@ -8,14 +9,14 @@ from rest_framework.views import APIView
 
 from accounts.models import Role
 from cbs.utils import get_object_or_400, parse_uuid
-from .models import Wallet, WalletProfile
+from .models import Wallet, WalletCreationRequest, WalletProfile
 from .permissions import IsAgent, IsClient
-from .services import resolve_wallet_by_tag
+from .services import generate_unique_tag, resolve_wallet_by_tag
 from .serializers import (
     DepositCreateSerializer, DepositSerializer,
     PaymentCreateSerializer, PaymentSerializer,
     TransferCreateSerializer, TransferSerializer,
-    WalletBalanceSerializer, WalletProfileSerializer, WalletSerializer,
+    WalletBalanceSerializer, WalletCreationRequestSerializer, WalletProfileSerializer, WalletSerializer,
 )
 
 
@@ -77,6 +78,57 @@ class MyWalletView(ListAPIView):
 
     def get_queryset(self):
         return Wallet.objects.filter(client=self.request.user).select_related("client", "profile").order_by("created_at")
+
+
+class MyWalletRequestsView(ListAPIView):
+    """Pending wallet requests an agent has opened for the logged-in customer — the notification
+    that drives the Dashboard confirm/decline banner."""
+    serializer_class = WalletCreationRequestSerializer
+    permission_classes = [IsClient]
+
+    def get_queryset(self):
+        return WalletCreationRequest.objects.filter(
+            customer=self.request.user, status=WalletCreationRequest.Status.PENDING,
+        ).select_related("wallet_profile", "requested_by").order_by("-created_at")
+
+
+class _DecideWalletRequestView(APIView):
+    permission_classes = [IsClient]
+
+    def get_request(self, request_id):
+        wallet_request = get_object_or_400(WalletCreationRequest, request_id)
+        if wallet_request.customer_id != self.request.user.id:
+            raise PermissionDenied("This wallet request does not belong to you.")
+        if wallet_request.status != WalletCreationRequest.Status.PENDING:
+            raise ValidationError("This request has already been decided.")
+        return wallet_request
+
+
+class ConfirmWalletRequestView(_DecideWalletRequestView):
+    def post(self, request, request_id):
+        wallet_request = self.get_request(request_id)
+
+        tag = generate_unique_tag(wallet_request.customer.username)
+        wallet = Wallet.objects.create(
+            client=wallet_request.customer, profile=wallet_request.wallet_profile, tag=tag,
+        )
+        wallet_request.status = WalletCreationRequest.Status.CONFIRMED
+        wallet_request.wallet = wallet
+        wallet_request.decided_at = timezone.now()
+        wallet_request.save()
+
+        return Response(WalletSerializer(wallet).data)
+
+
+class DeclineWalletRequestView(_DecideWalletRequestView):
+    def post(self, request, request_id):
+        wallet_request = self.get_request(request_id)
+
+        wallet_request.status = WalletCreationRequest.Status.DECLINED
+        wallet_request.decided_at = timezone.now()
+        wallet_request.save()
+
+        return Response(WalletCreationRequestSerializer(wallet_request).data)
 
 
 class RecipientLookupView(APIView):

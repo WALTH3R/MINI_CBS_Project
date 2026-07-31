@@ -4,7 +4,7 @@ from rest_framework import status
 from rest_framework_simplejwt.tokens import AccessToken
 
 from cbs.test_base import BaseAPITestCase
-from wallets.models import Wallet
+from wallets.models import Wallet, WalletCreationRequest
 from wallets.services import do_deposit, do_pay_merchant, do_transfer
 
 
@@ -197,27 +197,64 @@ class CustomerWalletTests(BaseAPITestCase):
         self.usd_profile = self.make_wallet_profile(name="USD Standard", currency="USD")
         self.customer_user, self.customer_profile, self.eur_wallet = self.make_customer("jdoe", self.eur_profile)
 
-    def test_agent_can_add_a_second_wallet_in_a_new_currency(self):
+    def test_agent_requesting_a_second_wallet_does_not_create_it_yet(self):
         self.auth_as(self.agent)
         response = self.client.post(
             f"/api/accounts/customers/{self.customer_profile.id}/wallets/",
             {"wallet_profile_id": str(self.usd_profile.id)},
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(response.data["profile"]["currency"], "USD")
-        self.assertNotEqual(response.data["tag"], self.eur_wallet.tag)
+        self.assertEqual(response.data["status"], "PENDING")
+        self.assertEqual(response.data["wallet_profile"]["currency"], "USD")
+        self.assertEqual(response.data["requested_by"], self.agent.username)
 
-        wallets = Wallet.objects.filter(client=self.customer_user)
-        self.assertEqual(wallets.count(), 2)
+        # No Wallet exists until the customer confirms.
+        self.assertEqual(Wallet.objects.filter(client=self.customer_user).count(), 1)
+        self.assertEqual(
+            WalletCreationRequest.objects.filter(
+                customer=self.customer_user, status=WalletCreationRequest.Status.PENDING,
+            ).count(),
+            1,
+        )
 
-    def test_customer_now_shows_both_wallets(self):
+    def test_customer_confirming_the_request_creates_the_wallet(self):
         self.auth_as(self.agent)
-        self.client.post(
+        create_response = self.client.post(
             f"/api/accounts/customers/{self.customer_profile.id}/wallets/",
             {"wallet_profile_id": str(self.usd_profile.id)},
         )
+        request_id = create_response.data["id"]
+
+        self.auth_as(self.customer_user)
+        confirm_response = self.client.post(f"/api/wallets/requests/{request_id}/confirm/")
+        self.assertEqual(confirm_response.status_code, status.HTTP_200_OK)
+        self.assertNotEqual(confirm_response.data["tag"], self.eur_wallet.tag)
+
+        self.auth_as(self.agent)
         response = self.client.get(f"/api/accounts/customers/{self.customer_profile.id}/")
         self.assertEqual(len(response.data["wallets"]), 2)
+
+    def test_customer_declining_the_request_creates_no_wallet(self):
+        self.auth_as(self.agent)
+        create_response = self.client.post(
+            f"/api/accounts/customers/{self.customer_profile.id}/wallets/",
+            {"wallet_profile_id": str(self.usd_profile.id)},
+        )
+        request_id = create_response.data["id"]
+
+        self.auth_as(self.customer_user)
+        decline_response = self.client.post(f"/api/wallets/requests/{request_id}/decline/")
+        self.assertEqual(decline_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(decline_response.data["status"], "DECLINED")
+
+        self.assertEqual(Wallet.objects.filter(client=self.customer_user).count(), 1)
+        # Declined, not pending anymore — a fresh USD request should be allowed.
+        self.auth_as(self.agent)
+        retry_response = self.client.post(
+            f"/api/accounts/customers/{self.customer_profile.id}/wallets/",
+            {"wallet_profile_id": str(self.usd_profile.id)},
+        )
+        self.assertEqual(retry_response.status_code, status.HTTP_201_CREATED)
 
     def test_duplicate_currency_wallet_rejected(self):
         self.auth_as(self.agent)
@@ -227,6 +264,21 @@ class CustomerWalletTests(BaseAPITestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(Wallet.objects.filter(client=self.customer_user).count(), 1)
+
+    def test_duplicate_pending_request_rejected(self):
+        self.auth_as(self.agent)
+        self.client.post(
+            f"/api/accounts/customers/{self.customer_profile.id}/wallets/",
+            {"wallet_profile_id": str(self.usd_profile.id)},
+        )
+        response = self.client.post(
+            f"/api/accounts/customers/{self.customer_profile.id}/wallets/",
+            {"wallet_profile_id": str(self.usd_profile.id)},
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(
+            WalletCreationRequest.objects.filter(customer=self.customer_user).count(), 1,
+        )
 
     def test_customer_cannot_add_their_own_wallet(self):
         self.auth_as(self.customer_user)

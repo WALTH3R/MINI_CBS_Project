@@ -4,10 +4,8 @@ from rest_framework import serializers
 
 from accounts.models import Role
 from merchants.models import Transaction
-from .models import Wallet, WalletProfile
-from .services import (
-    do_deposit, do_pay_merchant, do_transfer, generate_unique_tag, resolve_merchant_by_tag, resolve_wallet_by_tag,
-)
+from .models import Wallet, WalletCreationRequest, WalletProfile
+from .services import do_deposit, do_pay_merchant, do_transfer, resolve_merchant_by_tag, resolve_wallet_by_tag
 
 
 class WalletProfileSerializer(serializers.ModelSerializer):
@@ -29,8 +27,18 @@ class WalletSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+class WalletCreationRequestSerializer(serializers.ModelSerializer):
+    wallet_profile = WalletProfileSerializer(read_only=True)
+    requested_by = serializers.CharField(source="requested_by.username", read_only=True)
+
+    class Meta:
+        model = WalletCreationRequest
+        fields = ["id", "status", "wallet_profile", "requested_by", "created_at"]
+        read_only_fields = fields
+
+
 class WalletCreateSerializer(serializers.Serializer):
-    """An agent adds a wallet to an existing customer — e.g. a second wallet for a new currency."""
+    
     wallet_profile_id = serializers.PrimaryKeyRelatedField(queryset=WalletProfile.objects.all(), write_only=True)
 
     def validate_wallet_profile_id(self, wallet_profile):
@@ -38,15 +46,21 @@ class WalletCreateSerializer(serializers.Serializer):
         already_has_currency = Wallet.objects.filter(
             client=customer.user, profile__currency=wallet_profile.currency
         ).exists()
-        if already_has_currency:
+        already_requested = WalletCreationRequest.objects.filter(
+            customer=customer.user, wallet_profile__currency=wallet_profile.currency,
+            status=WalletCreationRequest.Status.PENDING,
+        ).exists()
+        if already_has_currency or already_requested:
             raise serializers.ValidationError(f"This customer already has a {wallet_profile.currency} wallet.")
         return wallet_profile
 
     def create(self, validated_data):
         customer = self.context["customer"]
+        requested_by = self.context["requested_by"]
         wallet_profile = validated_data["wallet_profile_id"]
-        tag = generate_unique_tag(customer.user.username)
-        return Wallet.objects.create(client=customer.user, profile=wallet_profile, tag=tag)
+        return WalletCreationRequest.objects.create(
+            customer=customer.user, wallet_profile=wallet_profile, requested_by=requested_by,
+        )
 
 
 class WalletBalanceSerializer(serializers.ModelSerializer):
