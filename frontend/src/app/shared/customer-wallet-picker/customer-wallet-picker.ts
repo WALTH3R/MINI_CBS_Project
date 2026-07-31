@@ -7,6 +7,7 @@ import { WalletService } from '../../core/services/wallet.service';
 import { Customer, CustomerWalletSummary } from '../../core/models/customer.model';
 import { WalletProfile } from '../../core/models/wallet.model';
 import { CurrencyAmountPipe } from '../pipes/currency-amount.pipe';
+import { TransientSignal } from '../utils/transient-signal';
 
 export interface CustomerWalletSelection {
   customer: Customer;
@@ -44,7 +45,8 @@ export class CustomerWalletPicker {
   protected readonly showCreateForm = signal(false);
   protected readonly newWalletProfileId = signal('');
   protected readonly creating = signal(false);
-  protected readonly createError = signal<string | null>(null);
+  private readonly createErrorMsg = new TransientSignal<string>();
+  protected readonly createError = this.createErrorMsg.value;
 
   constructor() {
     this.search$
@@ -94,13 +96,13 @@ export class CustomerWalletPicker {
     this.selectedCustomer.set(null);
     this.selectedWalletId.set(null);
     this.showCreateForm.set(false);
-    this.createError.set(null);
+    this.createErrorMsg.set(null);
     this.selectionCleared.emit();
   }
 
   openCreateForm(): void {
     this.showCreateForm.set(true);
-    this.createError.set(null);
+    this.createErrorMsg.set(null);
     if (this.walletProfiles().length === 0) {
       this.walletService.listProfiles().subscribe((profiles) => this.walletProfiles.set(profiles));
     }
@@ -113,7 +115,7 @@ export class CustomerWalletPicker {
       return;
     }
     this.creating.set(true);
-    this.createError.set(null);
+    this.createErrorMsg.set(null);
 
     this.walletService.createForCustomer(customer.id, profileId).subscribe({
       next: (wallet) => {
@@ -130,7 +132,7 @@ export class CustomerWalletPicker {
       },
       error: () => {
         this.creating.set(false);
-        this.createError.set('Could not create this wallet. It may already exist for this currency.');
+        this.createErrorMsg.set('Could not create this wallet. It may already exist for this currency.');
       },
     });
   }

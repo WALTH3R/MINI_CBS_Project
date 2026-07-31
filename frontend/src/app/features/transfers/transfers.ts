@@ -9,6 +9,7 @@ import { TransferService } from '../../core/services/transfer.service';
 import { Customer, CustomerWalletSummary } from '../../core/models/customer.model';
 import { Transfer, TransferDirection } from '../../core/models/transaction.model';
 import { CustomerWalletPicker, CustomerWalletSelection } from '../../shared/customer-wallet-picker/customer-wallet-picker';
+import { TransientSignal } from '../../shared/utils/transient-signal';
 
 @Component({
   selector: 'app-transfers',
@@ -25,8 +26,10 @@ export class Transfers {
   protected readonly toTag = signal('');
   protected readonly amount = signal('');
   protected readonly submitting = signal(false);
-  protected readonly submitError = signal<string | null>(null);
-  protected readonly lastTransfer = signal<Transfer | null>(null);
+  private readonly submitErrorMsg = new TransientSignal<string>();
+  protected readonly submitError = this.submitErrorMsg.value;
+  private readonly lastTransferMsg = new TransientSignal<Transfer>();
+  protected readonly lastTransfer = this.lastTransferMsg.value;
 
   // --- Shared: history + filters ---
   protected readonly history = signal<Transfer[]>([]);
@@ -71,11 +74,11 @@ export class Transfers {
     }
 
     this.submitting.set(true);
-    this.submitError.set(null);
+    this.submitErrorMsg.set(null);
 
     this.transferService.create(wallet.id, this.toTag(), this.amount()).subscribe({
       next: (transfer) => {
-        this.lastTransfer.set(transfer);
+        this.lastTransferMsg.set(transfer);
         this.toTag.set('');
         this.amount.set('');
         this.submitting.set(false);
@@ -85,9 +88,9 @@ export class Transfers {
       error: (err: unknown) => {
         this.submitting.set(false);
         if (err instanceof HttpErrorResponse && Array.isArray(err.error)) {
-          this.submitError.set(err.error.join(' '));
+          this.submitErrorMsg.set(err.error.join(' '));
         } else {
-          this.submitError.set('Could not complete this transfer. Please try again.');
+          this.submitErrorMsg.set('Could not complete this transfer. Please try again.');
         }
       },
     });

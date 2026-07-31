@@ -45,7 +45,7 @@ npx ng serve
 
 The API is now at `http://127.0.0.1:8000/`.
 
-The Front End runs on 'http://localhost:4200/'. (For the Admin Page, use the Django Admin Panel at)
+The Front End runs at 'http://localhost:4200/'. (For the Admin Page, use the Django Admin Panel at)
 
 The Different roles of the Users and steps are :
 

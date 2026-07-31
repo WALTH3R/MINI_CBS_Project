@@ -12,6 +12,7 @@ import { Merchant, MerchantCategory } from '../../core/models/merchant.model';
 import { Payment } from '../../core/models/transaction.model';
 import { StatusBadge } from '../../shared/status-badge/status-badge';
 import { CustomerWalletPicker, CustomerWalletSelection } from '../../shared/customer-wallet-picker/customer-wallet-picker';
+import { TransientSignal } from '../../shared/utils/transient-signal';
 
 const CATEGORY_LABELS: Record<MerchantCategory, string> = {
   UTILITIES: 'Utilities',
@@ -59,8 +60,10 @@ export class Payments {
   protected readonly selectedMerchant = signal<Merchant | null>(null);
   protected readonly amount = signal('');
   protected readonly submitting = signal(false);
-  protected readonly submitError = signal<string | null>(null);
-  protected readonly lastPayment = signal<Payment | null>(null);
+  private readonly submitErrorMsg = new TransientSignal<string>();
+  protected readonly submitError = this.submitErrorMsg.value;
+  private readonly lastPaymentMsg = new TransientSignal<Payment>();
+  protected readonly lastPayment = this.lastPaymentMsg.value;
 
   // --- History ---
   protected readonly history = signal<Payment[]>([]);
@@ -107,8 +110,8 @@ export class Payments {
 
   selectMerchant(merchant: Merchant): void {
     this.selectedMerchant.set(merchant);
-    this.lastPayment.set(null);
-    this.submitError.set(null);
+    this.lastPaymentMsg.set(null);
+    this.submitErrorMsg.set(null);
   }
 
   submitPayment(): void {
@@ -119,12 +122,12 @@ export class Payments {
     }
 
     this.submitting.set(true);
-    this.submitError.set(null);
-    this.lastPayment.set(null);
+    this.submitErrorMsg.set(null);
+    this.lastPaymentMsg.set(null);
 
     this.paymentService.create(wallet.id, merchant.wallet_tag, this.amount()).subscribe({
       next: (payment) => {
-        this.lastPayment.set(payment);
+        this.lastPaymentMsg.set(payment);
         this.amount.set('');
         this.submitting.set(false);
         this.myWallet.refresh().subscribe();
@@ -133,9 +136,9 @@ export class Payments {
       error: (err: unknown) => {
         this.submitting.set(false);
         if (err instanceof HttpErrorResponse && Array.isArray(err.error)) {
-          this.submitError.set(err.error.join(' '));
+          this.submitErrorMsg.set(err.error.join(' '));
         } else {
-          this.submitError.set('Could not process this payment. Please try again.');
+          this.submitErrorMsg.set('Could not process this payment. Please try again.');
         }
       },
     });

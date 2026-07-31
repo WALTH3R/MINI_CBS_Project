@@ -9,6 +9,7 @@ import { Customer, CustomerWalletSummary } from '../../core/models/customer.mode
 import { Deposit } from '../../core/models/transaction.model';
 import { CurrencyAmountPipe } from '../../shared/pipes/currency-amount.pipe';
 import { CustomerWalletPicker, CustomerWalletSelection } from '../../shared/customer-wallet-picker/customer-wallet-picker';
+import { TransientSignal } from '../../shared/utils/transient-signal';
 
 @Component({
   selector: 'app-deposits',
@@ -27,8 +28,10 @@ export class Deposits {
   protected readonly selectedWallet = signal<CustomerWalletSummary | null>(null);
   protected readonly amount = signal('');
   protected readonly submitting = signal(false);
-  protected readonly submitError = signal<string | null>(null);
-  protected readonly lastDeposit = signal<Deposit | null>(null);
+  private readonly submitErrorMsg = new TransientSignal<string>();
+  protected readonly submitError = this.submitErrorMsg.value;
+  private readonly lastDepositMsg = new TransientSignal<Deposit>();
+  protected readonly lastDeposit = this.lastDepositMsg.value;
 
   // --- Customer: history ---
   protected readonly historyLoading = signal(false);
@@ -54,15 +57,15 @@ export class Deposits {
   onWalletSelected({ customer, wallet }: CustomerWalletSelection): void {
     this.selectedCustomer.set(customer);
     this.selectedWallet.set(wallet);
-    this.lastDeposit.set(null);
-    this.submitError.set(null);
+    this.lastDepositMsg.set(null);
+    this.submitErrorMsg.set(null);
   }
 
   onSelectionCleared(): void {
     this.selectedCustomer.set(null);
     this.selectedWallet.set(null);
     this.amount.set('');
-    this.lastDeposit.set(null);
+    this.lastDepositMsg.set(null);
   }
 
   submitDeposit(): void {
@@ -72,11 +75,11 @@ export class Deposits {
     }
 
     this.submitting.set(true);
-    this.submitError.set(null);
+    this.submitErrorMsg.set(null);
 
     this.depositService.create(wallet.id, this.amount()).subscribe({
       next: (deposit) => {
-        this.lastDeposit.set(deposit);
+        this.lastDepositMsg.set(deposit);
         this.amount.set('');
         this.submitting.set(false);
         // Refresh the picker's wallet chips and our own copy of the balance.
@@ -85,9 +88,9 @@ export class Deposits {
       error: (err: unknown) => {
         this.submitting.set(false);
         if (err instanceof HttpErrorResponse && Array.isArray(err.error)) {
-          this.submitError.set(err.error.join(' '));
+          this.submitErrorMsg.set(err.error.join(' '));
         } else {
-          this.submitError.set('Could not process this deposit. Please try again.');
+          this.submitErrorMsg.set('Could not process this deposit. Please try again.');
         }
       },
     });
