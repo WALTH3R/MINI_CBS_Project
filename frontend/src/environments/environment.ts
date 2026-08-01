@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiBaseUrl: 'https://api.your-production-domain.example',
+  apiBaseUrl: 'https://mini-cbs-project.onrender.com',
 };
