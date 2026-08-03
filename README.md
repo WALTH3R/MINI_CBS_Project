@@ -66,3 +66,7 @@ Some Sources :
 Improvments :
 
 - An Front End was built using Angular 17 to make the system more user friendly and interactive.
+
+Hosted on : https://mini-cbs-project.onrender.com/
+
+postgresql://neondb_owner:npg_cSgRuzI6sy5K@ep-proud-heart-za32jcd1.c-2.eu-west-2.aws.neon.tech/neondb?sslmode=require

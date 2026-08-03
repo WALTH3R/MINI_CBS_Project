@@ -1,0 +1,137 @@
+<header class="mb-8">
+  <h1 class="text-headline-md text-on-surface">Merchants</h1>
+  <p class="mt-1 text-body-md text-on-surface-variant">Manage the service providers customers can pay.</p>
+</header>
+
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+  <!-- Existing merchants -->
+  <div class="rounded-xl bg-white p-card-padding card-shadow">
+    <h3 class="mb-4 text-headline-sm text-on-surface">Service providers</h3>
+
+    @if (loadError()) {
+      <p class="text-body-md text-error">{{ loadError() }}</p>
+    }
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-left">
+        <thead>
+          <tr class="border-b border-outline-variant text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">
+            <th class="pb-3">Name</th>
+            <th class="pb-3">Category</th>
+            <th class="pb-3">Owner</th>
+            <th class="pb-3">Tag</th>
+            <th class="pb-3">Status</th>
+            <th class="pb-3"></th>
+          </tr>
+        </thead>
+        <tbody class="text-body-md">
+          @for (merchant of merchants(); track merchant.id) {
+            <tr class="border-b border-surface-container-low">
+              <td class="py-3 font-semibold text-on-surface">{{ merchant.name }}</td>
+              <td class="py-3 text-on-surface-variant">{{ categoryLabel(merchant.category) }}</td>
+              <td class="py-3 text-on-surface-variant">{{ merchant.owner }}</td>
+              <td class="py-3 text-on-surface-variant">{{ merchant.wallet_tag }}</td>
+              <td class="py-3">
+                <app-status-badge [status]="merchant.is_active ? 'ACTIVE' : 'INACTIVE'" />
+              </td>
+              <td class="py-3 text-right">
+                <button
+                  (click)="toggleActive(merchant)"
+                  [disabled]="isToggling(merchant.id)"
+                  class="text-label-md font-bold text-primary hover:underline disabled:opacity-60"
+                >{{ merchant.is_active ? 'Deactivate' : 'Activate' }}</button>
+              </td>
+            </tr>
+          } @empty {
+            <tr><td colspan="6" class="py-8 text-center text-on-surface-variant">{{ loading() ? 'Loading…' : 'No merchants yet.' }}</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Add merchant -->
+  <div class="rounded-xl bg-white p-card-padding card-shadow">
+    <h3 class="mb-4 text-headline-sm text-on-surface">Add a provider</h3>
+
+    @if (created()) {
+      <div class="mb-4 flex items-start gap-2 rounded-lg border border-tertiary/20 bg-tertiary-fixed-dim/10 px-4 py-3">
+        <span class="material-symbols-outlined text-tertiary">check_circle</span>
+        <p class="text-body-md text-on-surface">{{ created() }}</p>
+      </div>
+    }
+
+    @if (submitError()) {
+      <div class="mb-4 flex items-start gap-2 rounded-lg border border-error/20 bg-error-container px-4 py-3">
+        <span class="material-symbols-outlined text-on-error-container">error</span>
+        <p class="text-body-md text-on-error-container">{{ submitError() }}</p>
+      </div>
+    }
+
+    <div class="flex flex-col gap-4">
+      <div>
+        <label class="mb-1.5 block text-label-md text-on-surface-variant">Name</label>
+        <input
+          type="text"
+          [value]="name()"
+          (input)="name.set($any($event.target).value)"
+          class="w-full rounded-xl border-none bg-surface-container-low px-4 py-3 text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/30"
+        />
+      </div>
+
+      <div>
+        <label class="mb-1.5 block text-label-md text-on-surface-variant">Category</label>
+        <select
+          [ngModel]="category()"
+          (ngModelChange)="category.set($event)"
+          class="w-full rounded-xl border-none bg-surface-container-low px-4 py-3 text-body-md focus:outline-none focus:ring-2 focus:ring-primary/30"
+        >
+          @for (c of categories; track c) {
+            <option [value]="c">{{ categoryLabel(c) }}</option>
+          }
+        </select>
+      </div>
+
+      <div>
+        <label class="mb-1.5 block text-label-md text-on-surface-variant">Owning agent</label>
+        <select
+          [ngModel]="ownerId()"
+          (ngModelChange)="ownerId.set($event)"
+          class="w-full rounded-xl border-none bg-surface-container-low px-4 py-3 text-body-md focus:outline-none focus:ring-2 focus:ring-primary/30"
+        >
+          <option value="">Select an agent…</option>
+          @for (agent of agents(); track agent.id) {
+            <option [value]="agent.id">{{ agent.username }}</option>
+          }
+        </select>
+      </div>
+
+      <div>
+        <label class="mb-1.5 block text-label-md text-on-surface-variant">Currency / limits profile</label>
+        <select
+          [ngModel]="walletProfileId()"
+          (ngModelChange)="walletProfileId.set($event)"
+          class="w-full rounded-xl border-none bg-surface-container-low px-4 py-3 text-body-md focus:outline-none focus:ring-2 focus:ring-primary/30"
+        >
+          <option value="">Select a profile…</option>
+          @for (profile of walletProfiles(); track profile.id) {
+            <option [value]="profile.id">{{ profile.name }} · {{ profile.currency }}</option>
+          }
+        </select>
+      </div>
+    </div>
+
+    <button
+      (click)="submitCreate()"
+      [disabled]="submitting() || !name() || !ownerId() || !walletProfileId()"
+      class="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-body-md font-bold text-white disabled:opacity-60"
+    >
+      @if (submitting()) {
+        <span class="material-symbols-outlined animate-spin text-lg">progress_activity</span>
+        Adding…
+      } @else {
+        Add provider
+      }
+    </button>
+  </div>
+</div>

@@ -188,6 +188,39 @@ class WalletProfileTests(BaseAPITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 1)
 
+    def test_any_authenticated_user_can_view_a_profile(self):
+        profile = self.make_wallet_profile()
+        self.auth_as(self.make_agent())
+
+        response = self.client.get(f"/api/wallets/profiles/{profile.id}/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["name"], profile.name)
+
+    def test_admin_can_update_a_profiles_limits(self):
+        profile = self.make_wallet_profile()
+        self.auth_as(self.make_admin())
+
+        response = self.client.patch(
+            f"/api/wallets/profiles/{profile.id}/", {"max_transfer_amount": "250000"},
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(Decimal(str(response.data["max_transfer_amount"])), Decimal("250000"))
+        profile.refresh_from_db()
+        self.assertEqual(profile.max_transfer_amount, Decimal("250000"))
+
+    def test_agent_cannot_update_a_profile(self):
+        profile = self.make_wallet_profile()
+        self.auth_as(self.make_agent())
+
+        response = self.client.patch(
+            f"/api/wallets/profiles/{profile.id}/", {"max_transfer_amount": "250000"},
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
 
 class WalletDetailBalanceTests(BaseAPITestCase):
     def setUp(self):

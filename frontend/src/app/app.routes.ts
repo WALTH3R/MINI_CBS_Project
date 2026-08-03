@@ -34,6 +34,22 @@ export const routes: Routes = [
         path: 'transactions',
         loadComponent: () => import('./features/transactions/transactions').then((m) => m.Transactions),
       },
+      {
+        path: 'agents',
+        loadComponent: () => import('./features/agents/agents').then((m) => m.Agents),
+      },
+      {
+        path: 'merchants',
+        loadComponent: () => import('./features/merchants/merchants').then((m) => m.Merchants),
+      },
+      {
+        path: 'wallet-profiles',
+        loadComponent: () => import('./features/wallet-profiles/wallet-profiles').then((m) => m.WalletProfiles),
+      },
+      {
+        path: 'customers',
+        loadComponent: () => import('./features/customers/customers').then((m) => m.Customers),
+      },
     ],
   },
   { path: '**', redirectTo: 'login' },

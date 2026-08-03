@@ -3,11 +3,12 @@ from django.urls import path
 from .views import (
     ConfirmWalletRequestView, DeclineWalletRequestView, MyWalletRequestsView, MyWalletView, RecipientLookupView,
     WalletBalanceView, WalletDepositListCreateView, WalletDetailView,
-    WalletPaymentListCreateView, WalletProfileListCreateView, WalletTransferListCreateView,
+    WalletPaymentListCreateView, WalletProfileDetailView, WalletProfileListCreateView, WalletTransferListCreateView,
 )
 
 urlpatterns = [
     path("profiles/", WalletProfileListCreateView.as_view()),
+    path("profiles/<str:pk>/", WalletProfileDetailView.as_view()),
     path("mine/", MyWalletView.as_view()),
     path("recipients/<str:tag>/", RecipientLookupView.as_view()),
     path("requests/mine/", MyWalletRequestsView.as_view()),

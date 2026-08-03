@@ -1,8 +1,9 @@
 from decimal import Decimal
 
+from django.contrib.auth import get_user_model
 from django.db.models import Q, Sum
 from merchants.models import Transaction
-from rest_framework.generics import CreateAPIView, ListAPIView, ListCreateAPIView, RetrieveAPIView
+from rest_framework.generics import ListAPIView, ListCreateAPIView, RetrieveAPIView
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -10,13 +11,15 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 
 from cbs.utils import ValidatedUUIDLookupMixin, get_object_or_400
 from wallets.models import Wallet
-from wallets.permissions import IsAgent
+from wallets.permissions import IsAgent, IsAgentOrAdmin
 from wallets.serializers import WalletCreateSerializer, WalletCreationRequestSerializer, WalletSerializer
 from .auth import RoleTokenObtainPairSerializer
-from .models import CustomerProfile
+from .models import CustomerProfile, Role
 from .serializers import (
     AgentCreateSerializer, CustomerCreateSerializer, CustomerProfileSerializer, TransactionSerializer,
 )
+
+User = get_user_model()
 
 
 class RoleTokenObtainPairView(TokenObtainPairView):
@@ -24,8 +27,12 @@ class RoleTokenObtainPairView(TokenObtainPairView):
 
 
 class CustomerListCreateView(ListCreateAPIView):
-    """List/search is how an agent finds a customer to act on (e.g. deposit); create registers a new one."""
-    permission_classes = [IsAgent]
+    """List/search is how an agent (or admin, browsing) finds a customer; only an agent registers one."""
+
+    def get_permissions(self):
+        if self.request.method == "POST":
+            return [IsAgent()]
+        return [IsAgentOrAdmin()]
 
     def get_serializer_class(self):
         return CustomerCreateSerializer if self.request.method == "POST" else CustomerProfileSerializer
@@ -47,10 +54,12 @@ class CustomerListCreateView(ListCreateAPIView):
 class CustomerDetailView(ValidatedUUIDLookupMixin, RetrieveAPIView):
     queryset = CustomerProfile.objects.select_related("user")
     serializer_class = CustomerProfileSerializer
-    permission_classes = [IsAgent]
+    permission_classes = [IsAgentOrAdmin]
 
 
-class AgentCreateView(CreateAPIView):
+class AgentListCreateView(ListCreateAPIView):
+    """Admin-only directory of agents — also feeds the "owner" picker when creating a merchant."""
+    queryset = User.objects.filter(role=Role.AGENT).order_by("username")
     serializer_class = AgentCreateSerializer
     permission_classes = [IsAdminUser]
 

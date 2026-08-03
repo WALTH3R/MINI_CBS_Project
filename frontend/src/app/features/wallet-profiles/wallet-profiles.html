@@ -1,0 +1,129 @@
+<header class="mb-8">
+  <h1 class="text-headline-md text-on-surface">Wallet profiles</h1>
+  <p class="mt-1 text-body-md text-on-surface-variant">Currency and limit templates used when opening a wallet.</p>
+</header>
+
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+  <!-- Existing profiles -->
+  <div class="rounded-xl bg-white p-card-padding card-shadow lg:col-span-2">
+    <h3 class="mb-4 text-headline-sm text-on-surface">Existing profiles</h3>
+
+    @if (loadError()) {
+      <p class="text-body-md text-error">{{ loadError() }}</p>
+    }
+    @if (editError()) {
+      <p class="mb-3 text-body-md text-error">{{ editError() }}</p>
+    }
+
+    <div class="flex flex-col gap-3">
+      @for (profile of profiles(); track profile.id) {
+        <div class="rounded-lg border border-outline-variant p-4">
+          @if (editingId() === profile.id) {
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <label class="mb-1 block text-label-md text-on-surface-variant">Name</label>
+                <input [value]="editName()" (input)="editName.set($any($event.target).value)" class="w-full rounded-lg border-none bg-surface-container-low px-3 py-2 text-body-md focus:outline-none focus:ring-2 focus:ring-primary/30" />
+              </div>
+              <div>
+                <label class="mb-1 block text-label-md text-on-surface-variant">Currency</label>
+                <input [value]="profile.currency" disabled class="w-full rounded-lg border-none bg-surface-container-high px-3 py-2 text-body-md text-on-surface-variant" />
+              </div>
+              <div>
+                <label class="mb-1 block text-label-md text-on-surface-variant">Max balance</label>
+                <input type="number" [value]="editMaxBalance()" (input)="editMaxBalance.set($any($event.target).value)" class="w-full rounded-lg border-none bg-surface-container-low px-3 py-2 text-body-md focus:outline-none focus:ring-2 focus:ring-primary/30" />
+              </div>
+              <div>
+                <label class="mb-1 block text-label-md text-on-surface-variant">Max transfer</label>
+                <input type="number" [value]="editMaxTransferAmount()" (input)="editMaxTransferAmount.set($any($event.target).value)" class="w-full rounded-lg border-none bg-surface-container-low px-3 py-2 text-body-md focus:outline-none focus:ring-2 focus:ring-primary/30" />
+              </div>
+              <div>
+                <label class="mb-1 block text-label-md text-on-surface-variant">Daily transfer limit</label>
+                <input type="number" [value]="editMaxDailyTransferTotal()" (input)="editMaxDailyTransferTotal.set($any($event.target).value)" class="w-full rounded-lg border-none bg-surface-container-low px-3 py-2 text-body-md focus:outline-none focus:ring-2 focus:ring-primary/30" />
+              </div>
+              <div>
+                <label class="mb-1 block text-label-md text-on-surface-variant">Max deposit</label>
+                <input type="number" [value]="editMaxDepositAmount()" (input)="editMaxDepositAmount.set($any($event.target).value)" class="w-full rounded-lg border-none bg-surface-container-low px-3 py-2 text-body-md focus:outline-none focus:ring-2 focus:ring-primary/30" />
+              </div>
+            </div>
+            <div class="mt-3 flex gap-2">
+              <button (click)="saveEdit(profile)" [disabled]="saving()" class="rounded-lg bg-primary px-4 py-2 text-label-md font-bold text-white disabled:opacity-60">
+                {{ saving() ? 'Saving…' : 'Save' }}
+              </button>
+              <button (click)="cancelEdit()" class="rounded-lg px-4 py-2 text-label-md text-on-surface-variant hover:bg-surface-container-high">Cancel</button>
+            </div>
+          } @else {
+            <div class="flex items-start justify-between">
+              <div>
+                <p class="text-body-md font-semibold text-on-surface">{{ profile.name }} · {{ profile.currency }}</p>
+                <p class="mt-1 text-label-md text-on-surface-variant">
+                  Balance up to {{ profile.max_balance }} · Transfer up to {{ profile.max_transfer_amount }} · Daily {{ profile.max_daily_transfer_total }} · Deposit up to {{ profile.max_deposit_amount }}
+                </p>
+              </div>
+              <button (click)="startEdit(profile)" class="text-label-md font-bold text-primary hover:underline">Edit</button>
+            </div>
+          }
+        </div>
+      } @empty {
+        <p class="py-8 text-center text-on-surface-variant">{{ loading() ? 'Loading…' : 'No wallet profiles yet.' }}</p>
+      }
+    </div>
+  </div>
+
+  <!-- Add profile -->
+  <div class="rounded-xl bg-white p-card-padding card-shadow">
+    <h3 class="mb-4 text-headline-sm text-on-surface">Add a profile</h3>
+
+    @if (created()) {
+      <div class="mb-4 flex items-start gap-2 rounded-lg border border-tertiary/20 bg-tertiary-fixed-dim/10 px-4 py-3">
+        <span class="material-symbols-outlined text-tertiary">check_circle</span>
+        <p class="text-body-md text-on-surface">{{ created() }}</p>
+      </div>
+    }
+    @if (submitError()) {
+      <div class="mb-4 flex items-start gap-2 rounded-lg border border-error/20 bg-error-container px-4 py-3">
+        <span class="material-symbols-outlined text-on-error-container">error</span>
+        <p class="text-body-md text-on-error-container">{{ submitError() }}</p>
+      </div>
+    }
+
+    <div class="flex flex-col gap-3">
+      <div>
+        <label class="mb-1.5 block text-label-md text-on-surface-variant">Name</label>
+        <input [value]="name()" (input)="name.set($any($event.target).value)" placeholder="e.g. Standard EUR" class="w-full rounded-xl border-none bg-surface-container-low px-4 py-3 text-body-md placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/30" />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-label-md text-on-surface-variant">Currency (ISO code)</label>
+        <input [value]="currency()" (input)="currency.set($any($event.target).value)" placeholder="EUR" maxlength="3" class="w-full rounded-xl border-none bg-surface-container-low px-4 py-3 text-body-md placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/30" />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-label-md text-on-surface-variant">Max balance</label>
+        <input type="number" [value]="maxBalance()" (input)="maxBalance.set($any($event.target).value)" class="w-full rounded-xl border-none bg-surface-container-low px-4 py-3 text-body-md placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/30" />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-label-md text-on-surface-variant">Max transfer</label>
+        <input type="number" [value]="maxTransferAmount()" (input)="maxTransferAmount.set($any($event.target).value)" class="w-full rounded-xl border-none bg-surface-container-low px-4 py-3 text-body-md placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/30" />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-label-md text-on-surface-variant">Daily transfer limit</label>
+        <input type="number" [value]="maxDailyTransferTotal()" (input)="maxDailyTransferTotal.set($any($event.target).value)" class="w-full rounded-xl border-none bg-surface-container-low px-4 py-3 text-body-md placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/30" />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-label-md text-on-surface-variant">Max deposit</label>
+        <input type="number" [value]="maxDepositAmount()" (input)="maxDepositAmount.set($any($event.target).value)" class="w-full rounded-xl border-none bg-surface-container-low px-4 py-3 text-body-md placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/30" />
+      </div>
+    </div>
+
+    <button
+      (click)="submitCreate()"
+      [disabled]="submitting() || !name() || !currency()"
+      class="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-body-md font-bold text-white disabled:opacity-60"
+    >
+      @if (submitting()) {
+        <span class="material-symbols-outlined animate-spin text-lg">progress_activity</span>
+        Creating…
+      } @else {
+        Add profile
+      }
+    </button>
+  </div>
+</div>

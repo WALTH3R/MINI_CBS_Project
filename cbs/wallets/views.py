@@ -2,13 +2,13 @@ from django.db.models import Q
 from django.utils import timezone
 from merchants.models import Transaction
 from rest_framework.exceptions import PermissionDenied, ValidationError
-from rest_framework.generics import ListAPIView, ListCreateAPIView, RetrieveAPIView
+from rest_framework.generics import ListAPIView, ListCreateAPIView, RetrieveAPIView, RetrieveUpdateAPIView
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from accounts.models import Role
-from cbs.utils import get_object_or_400, parse_uuid
+from cbs.utils import ValidatedUUIDLookupMixin, get_object_or_400, parse_uuid
 from .models import Wallet, WalletCreationRequest, WalletProfile
 from .permissions import IsAgent, IsClient
 from .services import generate_unique_tag, resolve_wallet_by_tag
@@ -164,6 +164,16 @@ class WalletProfileListCreateView(ListCreateAPIView):
 
     def get_permissions(self):
         if self.request.method == "POST":
+            return [IsAdminUser()]
+        return [IsAuthenticated()]
+
+
+class WalletProfileDetailView(ValidatedUUIDLookupMixin, RetrieveUpdateAPIView):
+    queryset = WalletProfile.objects.all()
+    serializer_class = WalletProfileSerializer
+
+    def get_permissions(self):
+        if self.request.method in ("PUT", "PATCH"):
             return [IsAdminUser()]
         return [IsAuthenticated()]
 

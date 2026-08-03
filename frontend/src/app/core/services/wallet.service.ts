@@ -33,6 +33,10 @@ export class WalletService {
     return this.http.post<WalletProfile>(`${BASE}/profiles/`, payload);
   }
 
+  updateProfile(profileId: string, payload: Partial<Omit<WalletProfile, 'id'>>): Observable<WalletProfile> {
+    return this.http.patch<WalletProfile>(`${BASE}/profiles/${profileId}/`, payload);
+  }
+
   listForCustomer(customerId: string): Observable<Wallet[]> {
     return this.http.get<Wallet[]>(`${ACCOUNTS_BASE}/customers/${customerId}/wallets/`);
   }

@@ -71,6 +71,33 @@ class AgentCreateTests(BaseAPITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
 
+class AgentListTests(BaseAPITestCase):
+    def setUp(self):
+        self.admin = self.make_admin()
+        self.agent1 = self.make_agent("agent1")
+        self.agent2 = self.make_agent("agent2")
+
+    def test_admin_can_list_agents(self):
+        self.auth_as(self.admin)
+        response = self.client.get("/api/accounts/agents/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        usernames = {a["username"] for a in response.data}
+        self.assertEqual(usernames, {"agent1", "agent2"})
+        self.assertNotIn("password", response.data[0])
+
+    def test_agent_cannot_list_agents(self):
+        self.auth_as(self.agent1)
+        response = self.client.get("/api/accounts/agents/")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_customer_cannot_list_agents(self):
+        customer_user, _, _ = self.make_customer("bystander", self.make_wallet_profile())
+        self.auth_as(customer_user)
+        response = self.client.get("/api/accounts/agents/")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+
 class CustomerCreateTests(BaseAPITestCase):
     def setUp(self):
         self.agent = self.make_agent()
@@ -150,6 +177,11 @@ class CustomerDetailTests(BaseAPITestCase):
         self.assertEqual(response.data["wallets"][0]["tag"], self.wallet.tag)
         self.assertEqual(response.data["wallets"][0]["currency"], self.wallet_profile.currency)
 
+    def test_admin_can_view_customer_detail(self):
+        self.auth_as(self.make_admin())
+        response = self.client.get(f"/api/accounts/customers/{self.customer_profile.id}/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
     def test_customer_cannot_view_customer_detail(self):
         self.auth_as(self.customer_user)
         response = self.client.get(f"/api/accounts/customers/{self.customer_profile.id}/")
@@ -187,6 +219,23 @@ class CustomerListTests(BaseAPITestCase):
     def test_customer_cannot_list_customers(self):
         self.auth_as(self.jdoe_user)
         response = self.client.get("/api/accounts/customers/")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_admin_can_list_all_customers(self):
+        self.auth_as(self.make_admin())
+        response = self.client.get("/api/accounts/customers/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 2)
+
+    def test_admin_cannot_register_a_customer(self):
+        self.auth_as(self.make_admin())
+        response = self.client.post("/api/accounts/customers/", {
+            "username": "shouldnotwork", "password": "pass12345",
+            "name": "Doe", "first_name": "John", "parent_name": "Richard Doe",
+            "date_of_birth": "1990-05-14", "marital_status": "SINGLE",
+            "place_of_birth": "Kinshasa", "national_id_number": "NID-99999",
+            "wallet_profile_id": str(self.wallet_profile.id),
+        })
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
 
