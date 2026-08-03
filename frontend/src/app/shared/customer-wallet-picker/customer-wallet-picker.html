@@ -1,4 +1,4 @@
-<div class="rounded-xl bg-white p-card-padding card-shadow">
+<div class="rounded-xl bg-surface-container-lowest p-card-padding card-shadow">
   @if (!selectedCustomer()) {
     <h3 class="mb-4 text-headline-sm text-on-surface">Find a customer</h3>
     <div class="relative">
@@ -86,7 +86,7 @@
           <select
             [ngModel]="newWalletProfileId()"
             (ngModelChange)="newWalletProfileId.set($event)"
-            class="w-full rounded-lg border-none bg-white px-3 py-2 text-body-md focus:outline-none focus:ring-2 focus:ring-primary/30"
+            class="w-full rounded-lg border-none bg-surface-container-lowest px-3 py-2 text-body-md focus:outline-none focus:ring-2 focus:ring-primary/30"
           >
             <option value="">Select a currency…</option>
             @for (profile of walletProfiles(); track profile.id) {

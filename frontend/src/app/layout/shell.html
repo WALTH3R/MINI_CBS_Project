@@ -87,7 +87,7 @@
             </button>
 
             @if (switcherOpen()) {
-              <div class="absolute right-0 top-full z-10 mt-2 w-64 rounded-xl bg-white py-2 card-shadow">
+              <div class="absolute right-0 top-full z-10 mt-2 w-64 rounded-xl bg-surface-container-lowest py-2 card-shadow">
                 @for (wallet of myWallet.wallets(); track wallet.id) {
                   <button
                     (click)="pickWallet(wallet.id)"
@@ -111,6 +111,13 @@
         <div class="flex h-9 w-9 items-center justify-center rounded-full bg-primary-container text-body-md font-bold text-white">
           {{ user.username.charAt(0).toUpperCase() }}
         </div>
+        <button
+          (click)="themeService.toggle()"
+          class="flex h-9 w-9 items-center justify-center rounded-full bg-surface-container-high text-on-surface-variant transition-colors hover:bg-surface-container-highest"
+          [attr.aria-label]="themeService.isDark() ? 'Switch to light mode' : 'Switch to dark mode'"
+        >
+          <span class="material-symbols-outlined text-lg">{{ themeService.isDark() ? 'light_mode' : 'dark_mode' }}</span>
+        </button>
         <button
           (click)="logout()"
           class="flex items-center gap-2 rounded-full bg-surface-container-high px-4 py-2 text-label-md text-on-surface-variant transition-colors hover:bg-error-container hover:text-on-error-container"

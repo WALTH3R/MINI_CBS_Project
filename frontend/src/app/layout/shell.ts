@@ -3,6 +3,7 @@ import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/rou
 
 import { AuthService } from '../core/services/auth.service';
 import { MyWalletStore } from '../core/services/my-wallet.store';
+import { ThemeService } from '../core/services/theme.service';
 import { CurrencyAmountPipe } from '../shared/pipes/currency-amount.pipe';
 
 @Component({
@@ -14,6 +15,7 @@ import { CurrencyAmountPipe } from '../shared/pipes/currency-amount.pipe';
 export class Shell {
   protected readonly auth = inject(AuthService);
   protected readonly myWallet = inject(MyWalletStore);
+  protected readonly themeService = inject(ThemeService);
   private readonly router = inject(Router);
 
   protected readonly switcherOpen = signal(false);

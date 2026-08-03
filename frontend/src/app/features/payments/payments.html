@@ -24,7 +24,7 @@
 
 <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
   <!-- Providers -->
-  <div class="rounded-xl bg-white p-card-padding card-shadow lg:col-span-2">
+  <div class="rounded-xl bg-surface-container-lowest p-card-padding card-shadow lg:col-span-2">
     <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
       <h3 class="text-headline-sm text-on-surface">Service providers</h3>
       <div class="flex flex-wrap items-center gap-2 rounded-full bg-surface-container-high p-1">
@@ -76,7 +76,7 @@
 
   <!-- Pay -->
   @if (auth.isCustomer()) {
-    <div class="rounded-xl bg-white p-card-padding card-shadow">
+    <div class="rounded-xl bg-surface-container-lowest p-card-padding card-shadow">
       <h3 class="mb-4 text-headline-sm text-on-surface">Pay a bill</h3>
 
       @if (!selectedMerchant()) {
@@ -143,7 +143,7 @@
   }
 </div>
 
-<div class="mt-6 rounded-xl bg-white p-card-padding card-shadow">
+<div class="mt-6 rounded-xl bg-surface-container-lowest p-card-padding card-shadow">
   <h3 class="mb-4 text-headline-sm text-on-surface">Payment history</h3>
 
   @if (historyError()) {

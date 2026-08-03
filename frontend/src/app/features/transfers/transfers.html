@@ -23,7 +23,7 @@
 }
 
 @if (auth.isCustomer()) {
-  <div class="mb-6 rounded-xl bg-white p-card-padding card-shadow">
+  <div class="mb-6 rounded-xl bg-surface-container-lowest p-card-padding card-shadow">
     <h3 class="mb-4 text-headline-sm text-on-surface">Send money</h3>
 
     @if (lastTransfer(); as transfer) {
@@ -85,7 +85,7 @@
 
 @if (confirmOpen()) {
   <div class="fixed inset-0 z-50 flex items-center justify-center bg-on-surface/40 p-4">
-    <div class="w-full max-w-sm rounded-xl bg-white p-card-padding card-shadow">
+    <div class="w-full max-w-sm rounded-xl bg-surface-container-lowest p-card-padding card-shadow">
       <div class="flex h-12 w-12 items-center justify-center rounded-full bg-primary-container">
         <span class="material-symbols-outlined text-primary">send</span>
       </div>
@@ -127,7 +127,7 @@
   </div>
 }
 
-<div class="rounded-xl bg-white p-card-padding card-shadow">
+<div class="rounded-xl bg-surface-container-lowest p-card-padding card-shadow">
   <div class="mb-4 flex items-center justify-between">
     <h3 class="text-headline-sm text-on-surface">History</h3>
     <div class="flex items-center gap-2 rounded-full bg-surface-container-high p-1">

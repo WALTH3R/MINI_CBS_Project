@@ -14,7 +14,7 @@
     <app-customer-wallet-picker (walletSelected)="onWalletSelected($event)" (selectionCleared)="onSelectionCleared()" />
 
     <!-- Deposit form -->
-    <div class="rounded-xl bg-white p-card-padding card-shadow">
+    <div class="rounded-xl bg-surface-container-lowest p-card-padding card-shadow">
       @if (selectedWallet(); as wallet) {
         <div class="rounded-lg bg-surface-container-low px-4 py-3">
           <p class="text-label-md text-on-surface-variant">Current balance</p>
@@ -75,7 +75,7 @@
 }
 
 @if (auth.isCustomer()) {
-  <div class="rounded-xl bg-white p-card-padding card-shadow">
+  <div class="rounded-xl bg-surface-container-lowest p-card-padding card-shadow">
     <div class="flex flex-wrap items-end gap-4">
       <div>
         <label class="mb-1.5 block text-label-md text-on-surface-variant">Min amount</label>

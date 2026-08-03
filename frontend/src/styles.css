@@ -93,10 +93,50 @@
   --spacing-card-padding: 24px;
 }
 
+/* Dark theme — overrides the same custom properties the @theme block above defines, so every
+   existing bg-, text-, and border- utility re-themes automatically with no component changes.
+   The fixed / fixed-dim tokens are deliberately NOT overridden here — by M3 convention "fixed"
+   colors stay constant across themes (used for brand-consistent accents like success boxes).
+   The primary family is ALSO deliberately left unchanged: components hardcode "text-white"
+   on "bg-primary" buttons/cards (rather than the semantic "text-on-primary"), so lightening
+   primary for dark mode would turn every primary button into low-contrast white-on-light-blue. */
+:root[data-theme="dark"] {
+  --color-surface: #10141f;
+  --color-surface-dim: #0a0e17;
+  --color-surface-bright: #333d54;
+  --color-surface-container-lowest: #0a0e17;
+  --color-surface-container-low: #171d2c;
+  --color-surface-container: #1d2436;
+  --color-surface-container-high: #272f45;
+  --color-surface-container-highest: #323b54;
+  --color-on-surface: #e5e9f5;
+  --color-on-surface-variant: #b0b6c9;
+  --color-inverse-surface: #e5e9f5;
+  --color-inverse-on-surface: #10141f;
+  --color-outline: #7d8299;
+  --color-outline-variant: #3a4160;
+  --color-secondary: #c2c6d3;
+  --color-on-secondary: #2b3040;
+  --color-secondary-container: #424751;
+  --color-on-secondary-container: #dee2ef;
+  --color-tertiary: #4edea3;
+  --color-on-tertiary: #003825;
+  --color-tertiary-container: #005236;
+  --color-on-tertiary-container: #6ffbbe;
+  --color-error: #ffb4ab;
+  --color-on-error: #690005;
+  --color-error-container: #93000a;
+  --color-on-error-container: #ffdad6;
+  --color-background: #10141f;
+  --color-on-background: #e5e9f5;
+  --color-surface-variant: #272f45;
+}
+
 body {
   font-family: "Plus Jakarta Sans", sans-serif;
   background-color: var(--color-surface);
   color: var(--color-on-surface);
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .material-symbols-outlined {

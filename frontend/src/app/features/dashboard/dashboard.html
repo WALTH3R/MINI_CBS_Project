@@ -42,7 +42,7 @@
               <button
                 (click)="declineWalletRequest(req)"
                 [disabled]="decidingRequestId() === req.id"
-                class="rounded-lg bg-white px-4 py-2 text-label-md font-bold text-on-surface-variant disabled:opacity-60"
+                class="rounded-lg bg-surface-container-lowest px-4 py-2 text-label-md font-bold text-on-surface-variant disabled:opacity-60"
               >
                 Decline
               </button>
@@ -61,19 +61,19 @@
 
     @if (myWallet.activeWallet(); as wallet) {
       <div class="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div class="rounded-xl bg-white p-card-padding card-shadow">
+        <div class="rounded-xl bg-surface-container-lowest p-card-padding card-shadow">
           <p class="text-label-md text-on-surface-variant">Total deposited</p>
           <p class="mt-1 text-headline-md text-tertiary">{{ stats().totalDeposited | currencyAmount:wallet.profile.currency }}</p>
         </div>
-        <div class="rounded-xl bg-white p-card-padding card-shadow">
+        <div class="rounded-xl bg-surface-container-lowest p-card-padding card-shadow">
           <p class="text-label-md text-on-surface-variant">Total transferred</p>
           <p class="mt-1 text-headline-md text-on-surface">{{ stats().totalTransferred | currencyAmount:wallet.profile.currency }}</p>
         </div>
-        <div class="rounded-xl bg-white p-card-padding card-shadow">
+        <div class="rounded-xl bg-surface-container-lowest p-card-padding card-shadow">
           <p class="text-label-md text-on-surface-variant">Total paid in bills</p>
           <p class="mt-1 text-headline-md text-error">{{ stats().totalPaidBills | currencyAmount:wallet.profile.currency }}</p>
         </div>
-        <div class="rounded-xl bg-white p-card-padding card-shadow">
+        <div class="rounded-xl bg-surface-container-lowest p-card-padding card-shadow">
           <p class="text-label-md text-on-surface-variant">Total transactions</p>
           <p class="mt-1 text-headline-md text-on-surface">{{ stats().totalTransactions }}</p>
         </div>
@@ -140,7 +140,7 @@
         </div>
 
         <!-- Quick actions -->
-        <div class="rounded-xl bg-white p-card-padding card-shadow lg:col-span-2">
+        <div class="rounded-xl bg-surface-container-lowest p-card-padding card-shadow lg:col-span-2">
           <h3 class="text-headline-sm text-on-surface">Quick actions</h3>
           <div class="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
             <a routerLink="/transfers" class="flex flex-col items-center gap-2 rounded-xl bg-surface-container-low p-4 text-center transition-colors hover:bg-surface-container">
@@ -211,7 +211,7 @@
   <!-- AGENT -->
   @if (auth.isAgent()) {
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      <a routerLink="/customers" class="flex items-center gap-4 rounded-xl bg-white p-card-padding card-shadow transition-shadow hover:shadow-md">
+      <a routerLink="/customers" class="flex items-center gap-4 rounded-xl bg-surface-container-lowest p-card-padding card-shadow transition-shadow hover:shadow-md">
         <div class="flex h-11 w-11 items-center justify-center rounded-lg bg-surface-container-low text-primary">
           <span class="material-symbols-outlined">person_add</span>
         </div>
@@ -220,7 +220,7 @@
           <p class="text-label-md text-on-surface-variant">Register a new customer</p>
         </div>
       </a>
-      <a routerLink="/deposits" class="flex items-center gap-4 rounded-xl bg-white p-card-padding card-shadow transition-shadow hover:shadow-md">
+      <a routerLink="/deposits" class="flex items-center gap-4 rounded-xl bg-surface-container-lowest p-card-padding card-shadow transition-shadow hover:shadow-md">
         <div class="flex h-11 w-11 items-center justify-center rounded-lg bg-surface-container-low text-primary">
           <span class="material-symbols-outlined">payments</span>
         </div>
@@ -229,7 +229,7 @@
           <p class="text-label-md text-on-surface-variant">Find a customer and add funds</p>
         </div>
       </a>
-      <a routerLink="/transactions" class="flex items-center gap-4 rounded-xl bg-white p-card-padding card-shadow transition-shadow hover:shadow-md">
+      <a routerLink="/transactions" class="flex items-center gap-4 rounded-xl bg-surface-container-lowest p-card-padding card-shadow transition-shadow hover:shadow-md">
         <div class="flex h-11 w-11 items-center justify-center rounded-lg bg-surface-container-low text-primary">
           <span class="material-symbols-outlined">bar_chart</span>
         </div>
@@ -238,7 +238,7 @@
           <p class="text-label-md text-on-surface-variant">View a customer's full ledger</p>
         </div>
       </a>
-      <a routerLink="/transfers" class="flex items-center gap-4 rounded-xl bg-white p-card-padding card-shadow transition-shadow hover:shadow-md">
+      <a routerLink="/transfers" class="flex items-center gap-4 rounded-xl bg-surface-container-lowest p-card-padding card-shadow transition-shadow hover:shadow-md">
         <div class="flex h-11 w-11 items-center justify-center rounded-lg bg-surface-container-low text-primary">
           <span class="material-symbols-outlined">receipt_long</span>
         </div>
@@ -253,7 +253,7 @@
   <!-- ADMIN -->
   @if (auth.isAdmin() && !auth.isAgent() && !auth.isCustomer()) {
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      <a routerLink="/agents" class="flex items-center gap-4 rounded-xl bg-white p-card-padding card-shadow transition-shadow hover:shadow-md">
+      <a routerLink="/agents" class="flex items-center gap-4 rounded-xl bg-surface-container-lowest p-card-padding card-shadow transition-shadow hover:shadow-md">
         <div class="flex h-11 w-11 items-center justify-center rounded-lg bg-surface-container-low text-primary">
           <span class="material-symbols-outlined">badge</span>
         </div>
@@ -262,7 +262,7 @@
           <p class="text-label-md text-on-surface-variant">Onboard and review bank agents</p>
         </div>
       </a>
-      <a routerLink="/merchants" class="flex items-center gap-4 rounded-xl bg-white p-card-padding card-shadow transition-shadow hover:shadow-md">
+      <a routerLink="/merchants" class="flex items-center gap-4 rounded-xl bg-surface-container-lowest p-card-padding card-shadow transition-shadow hover:shadow-md">
         <div class="flex h-11 w-11 items-center justify-center rounded-lg bg-surface-container-low text-primary">
           <span class="material-symbols-outlined">storefront</span>
         </div>
@@ -271,7 +271,7 @@
           <p class="text-label-md text-on-surface-variant">Manage service providers</p>
         </div>
       </a>
-      <a routerLink="/wallet-profiles" class="flex items-center gap-4 rounded-xl bg-white p-card-padding card-shadow transition-shadow hover:shadow-md">
+      <a routerLink="/wallet-profiles" class="flex items-center gap-4 rounded-xl bg-surface-container-lowest p-card-padding card-shadow transition-shadow hover:shadow-md">
         <div class="flex h-11 w-11 items-center justify-center rounded-lg bg-surface-container-low text-primary">
           <span class="material-symbols-outlined">account_balance_wallet</span>
         </div>
@@ -280,7 +280,7 @@
           <p class="text-label-md text-on-surface-variant">Currency and limit templates</p>
         </div>
       </a>
-      <a routerLink="/customers" class="flex items-center gap-4 rounded-xl bg-white p-card-padding card-shadow transition-shadow hover:shadow-md">
+      <a routerLink="/customers" class="flex items-center gap-4 rounded-xl bg-surface-container-lowest p-card-padding card-shadow transition-shadow hover:shadow-md">
         <div class="flex h-11 w-11 items-center justify-center rounded-lg bg-surface-container-low text-primary">
           <span class="material-symbols-outlined">group</span>
         </div>
