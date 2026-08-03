@@ -1,10 +1,24 @@
 <header class="mb-8">
   <h1 class="text-headline-md text-on-surface">Customers</h1>
-  <p class="mt-1 text-body-md text-on-surface-variant">Browse everyone registered with the bank.</p>
+  <p class="mt-1 text-body-md text-on-surface-variant">
+    @if (auth.isAgent()) {
+      Search for a customer, or enroll a new one.
+    } @else {
+      Browse everyone registered with the bank.
+    }
+  </p>
 </header>
 
 <div class="mb-6 rounded-xl bg-white p-card-padding card-shadow">
-  <h3 class="mb-4 text-headline-sm text-on-surface">Find a customer</h3>
+  <div class="mb-4 flex items-center justify-between">
+    <h3 class="text-headline-sm text-on-surface">Find a customer</h3>
+    @if (auth.isAgent()) {
+      <button (click)="openEnrollForm()" class="flex items-center gap-1 text-label-md font-bold text-primary">
+        <span class="material-symbols-outlined text-lg">person_add</span>
+        Enroll a customer
+      </button>
+    }
+  </div>
   <div class="relative max-w-md">
     <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
     <input
@@ -96,6 +110,93 @@
         }
       </div>
     </div>
+  </div>
+} @else if (showEnrollForm()) {
+  <div class="rounded-xl bg-white p-card-padding card-shadow">
+    <div class="flex items-start justify-between">
+      <h3 class="text-headline-sm text-on-surface">Enroll a customer</h3>
+      <button (click)="cancelEnrollForm()" class="text-label-md text-on-surface-variant hover:text-primary">Cancel</button>
+    </div>
+
+    @if (enrollError()) {
+      <div class="mt-4 flex items-start gap-2 rounded-lg border border-error/20 bg-error-container px-4 py-3">
+        <span class="material-symbols-outlined text-on-error-container">error</span>
+        <p class="text-body-md text-on-error-container">{{ enrollError() }}</p>
+      </div>
+    }
+
+    <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div>
+        <label class="mb-1.5 block text-label-md text-on-surface-variant">Username</label>
+        <input [value]="username()" (input)="username.set($any($event.target).value)" class="w-full rounded-xl border-none bg-surface-container-low px-4 py-3 text-body-md focus:outline-none focus:ring-2 focus:ring-primary/30" />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-label-md text-on-surface-variant">Password</label>
+        <input type="password" [value]="password()" (input)="password.set($any($event.target).value)" class="w-full rounded-xl border-none bg-surface-container-low px-4 py-3 text-body-md focus:outline-none focus:ring-2 focus:ring-primary/30" />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-label-md text-on-surface-variant">First name</label>
+        <input [value]="firstName()" (input)="firstName.set($any($event.target).value)" class="w-full rounded-xl border-none bg-surface-container-low px-4 py-3 text-body-md focus:outline-none focus:ring-2 focus:ring-primary/30" />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-label-md text-on-surface-variant">Last name</label>
+        <input [value]="name()" (input)="name.set($any($event.target).value)" class="w-full rounded-xl border-none bg-surface-container-low px-4 py-3 text-body-md focus:outline-none focus:ring-2 focus:ring-primary/30" />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-label-md text-on-surface-variant">Parent's name</label>
+        <input [value]="parentName()" (input)="parentName.set($any($event.target).value)" class="w-full rounded-xl border-none bg-surface-container-low px-4 py-3 text-body-md focus:outline-none focus:ring-2 focus:ring-primary/30" />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-label-md text-on-surface-variant">Date of birth</label>
+        <input type="date" [value]="dateOfBirth()" (input)="dateOfBirth.set($any($event.target).value)" class="w-full rounded-xl border-none bg-surface-container-low px-4 py-3 text-body-md focus:outline-none focus:ring-2 focus:ring-primary/30" />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-label-md text-on-surface-variant">Marital status</label>
+        <select
+          [ngModel]="maritalStatus()"
+          (ngModelChange)="maritalStatus.set($event)"
+          class="w-full rounded-xl border-none bg-surface-container-low px-4 py-3 text-body-md focus:outline-none focus:ring-2 focus:ring-primary/30"
+        >
+          @for (status of maritalStatuses; track status) {
+            <option [value]="status">{{ status }}</option>
+          }
+        </select>
+      </div>
+      <div>
+        <label class="mb-1.5 block text-label-md text-on-surface-variant">Place of birth</label>
+        <input [value]="placeOfBirth()" (input)="placeOfBirth.set($any($event.target).value)" class="w-full rounded-xl border-none bg-surface-container-low px-4 py-3 text-body-md focus:outline-none focus:ring-2 focus:ring-primary/30" />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-label-md text-on-surface-variant">National ID number</label>
+        <input [value]="nationalIdNumber()" (input)="nationalIdNumber.set($any($event.target).value)" class="w-full rounded-xl border-none bg-surface-container-low px-4 py-3 text-body-md focus:outline-none focus:ring-2 focus:ring-primary/30" />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-label-md text-on-surface-variant">Starting wallet</label>
+        <select
+          [ngModel]="walletProfileId()"
+          (ngModelChange)="walletProfileId.set($event)"
+          class="w-full rounded-xl border-none bg-surface-container-low px-4 py-3 text-body-md focus:outline-none focus:ring-2 focus:ring-primary/30"
+        >
+          <option value="">Select a currency…</option>
+          @for (profile of walletProfiles(); track profile.id) {
+            <option [value]="profile.id">{{ profile.name }} · {{ profile.currency }}</option>
+          }
+        </select>
+      </div>
+    </div>
+
+    <button
+      (click)="submitEnroll()"
+      [disabled]="enrolling()"
+      class="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-body-md font-bold text-white disabled:opacity-60 sm:w-auto sm:px-8"
+    >
+      @if (enrolling()) {
+        <span class="material-symbols-outlined animate-spin text-lg">progress_activity</span>
+        Enrolling…
+      } @else {
+        Enroll customer
+      }
+    </button>
   </div>
 } @else {
   <div class="flex flex-col items-center justify-center rounded-xl bg-white py-16 text-center card-shadow">

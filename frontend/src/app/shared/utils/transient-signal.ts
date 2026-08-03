@@ -1,6 +1,6 @@
 import { Signal, WritableSignal, signal } from '@angular/core';
 
-const DEFAULT_DELAY_MS = 5000;
+const DEFAULT_DELAY_MS = 15000;
 
 
 export class TransientSignal<T> {

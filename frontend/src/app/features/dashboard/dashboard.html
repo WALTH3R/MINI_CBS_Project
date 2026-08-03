@@ -210,7 +210,16 @@
 
   <!-- AGENT -->
   @if (auth.isAgent()) {
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <a routerLink="/customers" class="flex items-center gap-4 rounded-xl bg-white p-card-padding card-shadow transition-shadow hover:shadow-md">
+        <div class="flex h-11 w-11 items-center justify-center rounded-lg bg-surface-container-low text-primary">
+          <span class="material-symbols-outlined">person_add</span>
+        </div>
+        <div>
+          <p class="text-body-md font-semibold text-on-surface">Enroll a customer</p>
+          <p class="text-label-md text-on-surface-variant">Register a new customer</p>
+        </div>
+      </a>
       <a routerLink="/deposits" class="flex items-center gap-4 rounded-xl bg-white p-card-padding card-shadow transition-shadow hover:shadow-md">
         <div class="flex h-11 w-11 items-center justify-center rounded-lg bg-surface-container-low text-primary">
           <span class="material-symbols-outlined">payments</span>
