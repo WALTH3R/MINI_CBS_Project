@@ -1,8 +1,8 @@
 from django.urls import path
 
 from .views import (
-    AgentDetailView, AgentListCreateView, CustomerListCreateView, CustomerDetailView, CustomerWalletListCreateView,
-    CustomerTransactionListView, CustomerTransactionStatisticsView,
+    AgentDetailView, AgentListCreateView, AgentTransactionListView, CustomerListCreateView, CustomerDetailView,
+    CustomerWalletListCreateView, CustomerTransactionListView, CustomerTransactionStatisticsView,
 )
 
 urlpatterns = [
@@ -13,4 +13,5 @@ urlpatterns = [
     path("customers/<str:customer_id>/transactions/statistics/", CustomerTransactionStatisticsView.as_view()),
     path("agents/", AgentListCreateView.as_view()),
     path("agents/<str:pk>/", AgentDetailView.as_view()),
+    path("agents/<str:agent_id>/transactions/", AgentTransactionListView.as_view()),
 ]

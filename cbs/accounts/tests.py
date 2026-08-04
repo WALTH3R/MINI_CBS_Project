@@ -516,3 +516,44 @@ class ReportingTests(BaseAPITestCase):
         self.auth_as(self.payer)
         response = self.client.get(f"/api/accounts/customers/{self.payer_profile.id}/transactions/")
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_admin_can_view_customer_transaction_list(self):
+        self.auth_as(self.make_admin())
+        response = self.client.get(f"/api/accounts/customers/{self.payer_profile.id}/transactions/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 4)
+
+    def test_admin_can_view_customer_statistics(self):
+        self.auth_as(self.make_admin())
+        response = self.client.get(f"/api/accounts/customers/{self.payer_profile.id}/transactions/statistics/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["total_transactions"], 3)
+
+
+class AgentTransactionTests(BaseAPITestCase):
+    def setUp(self):
+        self.agent = self.make_agent()
+        self.other_agent = self.make_agent("other_agent")
+        self.wallet_profile = self.make_wallet_profile()
+        self.payer, self.payer_profile, self.payer_wallet = self.make_customer("payer", self.wallet_profile)
+
+        do_deposit(self.payer_wallet, Decimal("100.00"), self.agent)
+        do_deposit(self.payer_wallet, Decimal("50.00"), self.agent)
+        do_deposit(self.payer_wallet, Decimal("25.00"), self.other_agent)
+
+    def test_admin_can_view_agent_transactions(self):
+        self.auth_as(self.make_admin())
+        response = self.client.get(f"/api/accounts/agents/{self.agent.id}/transactions/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 2)
+        self.assertTrue(all(row["type"] == "DEPOSIT" for row in response.data))
+
+    def test_agent_cannot_view_own_transactions_via_this_endpoint(self):
+        self.auth_as(self.agent)
+        response = self.client.get(f"/api/accounts/agents/{self.agent.id}/transactions/")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_customer_cannot_view_agent_transactions(self):
+        self.auth_as(self.payer)
+        response = self.client.get(f"/api/accounts/agents/{self.agent.id}/transactions/")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)

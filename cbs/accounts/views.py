@@ -155,7 +155,7 @@ def _filter_transactions(qs, params, include_type=True):
 
 class CustomerTransactionListView(ListAPIView):
     serializer_class = TransactionSerializer
-    permission_classes = [IsAgent]
+    permission_classes = [IsAgentOrAdmin]
 
     def get_customer(self):
         if not hasattr(self, "_customer"):
@@ -169,8 +169,21 @@ class CustomerTransactionListView(ListAPIView):
         return qs.order_by("-created_at")
 
 
+class AgentTransactionListView(ListAPIView):
+    """Everything a given agent has personally performed — in practice, the deposits they've made
+    on customers' behalf, since transfers and payments are always self-service by the customer."""
+    serializer_class = TransactionSerializer
+    permission_classes = [IsAdminUser]
+
+    def get_queryset(self):
+        agent = get_object_or_400(User.objects.filter(role=Role.AGENT), self.kwargs["agent_id"])
+        qs = Transaction.objects.filter(performed_by=agent)
+        qs = _filter_transactions(qs, self.request.query_params)
+        return qs.order_by("-created_at")
+
+
 class CustomerTransactionStatisticsView(APIView):
-    permission_classes = [IsAgent]
+    permission_classes = [IsAgentOrAdmin]
 
     def get(self, request, customer_id):
         customer = get_object_or_400(CustomerProfile, customer_id)

@@ -48,6 +48,11 @@
 
         @if (auth.isAdmin()) {
           <a
+            routerLink="/transactions"
+            routerLinkActive="!text-primary !font-bold border-b-2 border-primary pb-1"
+            class="pb-1 transition-colors hover:text-primary"
+          >Transactions</a>
+          <a
             routerLink="/agents"
             routerLinkActive="!text-primary !font-bold border-b-2 border-primary pb-1"
             class="pb-1 transition-colors hover:text-primary"

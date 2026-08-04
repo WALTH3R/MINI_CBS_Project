@@ -1,38 +1,83 @@
 <header class="mb-8">
   <h1 class="text-headline-md text-on-surface">Transaction Reporting</h1>
-  <p class="mt-1 text-body-md text-on-surface-variant">Look up a customer's full transaction history and summary statistics.</p>
+  <p class="mt-1 text-body-md text-on-surface-variant">
+    @if (mode() === 'agent') {
+      Look up everything a bank agent has personally performed.
+    } @else {
+      Look up a customer's full transaction history and summary statistics.
+    }
+  </p>
 </header>
 
-<div class="mb-6">
-  <app-customer-wallet-picker (walletSelected)="onWalletSelected($event)" (selectionCleared)="onSelectionCleared()" />
-</div>
+@if (auth.isAdmin()) {
+  <div class="mb-6 flex gap-2">
+    <button
+      (click)="setMode('customer')"
+      class="rounded-full px-4 py-2 text-label-md font-bold transition-colors"
+      [class.bg-primary]="mode() === 'customer'"
+      [class.text-white]="mode() === 'customer'"
+      [class.bg-surface-container-lowest]="mode() !== 'customer'"
+      [class.text-on-surface-variant]="mode() !== 'customer'"
+    >Customer</button>
+    <button
+      (click)="setMode('agent')"
+      class="rounded-full px-4 py-2 text-label-md font-bold transition-colors"
+      [class.bg-primary]="mode() === 'agent'"
+      [class.text-white]="mode() === 'agent'"
+      [class.bg-surface-container-lowest]="mode() !== 'agent'"
+      [class.text-on-surface-variant]="mode() !== 'agent'"
+    >Agent</button>
+  </div>
+}
 
-@if (selectedCustomer(); as customer) {
-  @if (selectedWallet(); as wallet) {
-    <p class="mb-4 text-body-md text-on-surface-variant">
-      Showing report for <span class="font-semibold text-on-surface">{{ customer.first_name }} {{ customer.name }}</span>'s {{ wallet.tag }} ({{ wallet.currency }}) wallet
-    </p>
-  }
+@if (mode() === 'agent') {
+  <div class="mb-6 rounded-xl bg-surface-container-lowest p-card-padding card-shadow">
+    <label class="mb-1.5 block text-label-md text-on-surface-variant">Agent</label>
+    <select
+      [ngModel]="selectedAgentId()"
+      (ngModelChange)="onAgentSelected($event)"
+      class="w-full max-w-sm rounded-xl border-none bg-surface-container-low px-4 py-3 text-body-md focus:outline-none focus:ring-2 focus:ring-primary/30"
+    >
+      <option value="">Select an agent…</option>
+      @for (agent of agents(); track agent.id) {
+        <option [value]="agent.id">{{ agent.username }} — {{ agent.first_name }} {{ agent.last_name }}</option>
+      }
+    </select>
+  </div>
+} @else {
+  <div class="mb-6">
+    <app-customer-wallet-picker [allowCreate]="!auth.isAdmin()" (walletSelected)="onWalletSelected($event)" (selectionCleared)="onSelectionCleared()" />
+  </div>
+}
 
-  @if (stats(); as s) {
-    <div class="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-      <div class="rounded-xl bg-surface-container-lowest p-card-padding card-shadow">
-        <p class="text-label-md text-on-surface-variant">Total deposited</p>
-        <p class="mt-1 text-headline-md text-tertiary">{{ s.total_deposited | currencyAmount }}</p>
+@if (hasSelection()) {
+  @if (mode() === 'customer' && selectedCustomer(); as customer) {
+    @if (selectedWallet(); as wallet) {
+      <p class="mb-4 text-body-md text-on-surface-variant">
+        Showing report for <span class="font-semibold text-on-surface">{{ customer.first_name }} {{ customer.name }}</span>'s {{ wallet.tag }} ({{ wallet.currency }}) wallet
+      </p>
+    }
+
+    @if (stats(); as s) {
+      <div class="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div class="rounded-xl bg-surface-container-lowest p-card-padding card-shadow">
+          <p class="text-label-md text-on-surface-variant">Total deposited</p>
+          <p class="mt-1 text-headline-md text-tertiary">{{ s.total_deposited | currencyAmount }}</p>
+        </div>
+        <div class="rounded-xl bg-surface-container-lowest p-card-padding card-shadow">
+          <p class="text-label-md text-on-surface-variant">Total transferred</p>
+          <p class="mt-1 text-headline-md text-on-surface">{{ s.total_transferred | currencyAmount }}</p>
+        </div>
+        <div class="rounded-xl bg-surface-container-lowest p-card-padding card-shadow">
+          <p class="text-label-md text-on-surface-variant">Total paid in bills</p>
+          <p class="mt-1 text-headline-md text-error">{{ s.total_paid_bills | currencyAmount }}</p>
+        </div>
+        <div class="rounded-xl bg-surface-container-lowest p-card-padding card-shadow">
+          <p class="text-label-md text-on-surface-variant">Total transactions</p>
+          <p class="mt-1 text-headline-md text-on-surface">{{ s.total_transactions }}</p>
+        </div>
       </div>
-      <div class="rounded-xl bg-surface-container-lowest p-card-padding card-shadow">
-        <p class="text-label-md text-on-surface-variant">Total transferred</p>
-        <p class="mt-1 text-headline-md text-on-surface">{{ s.total_transferred | currencyAmount }}</p>
-      </div>
-      <div class="rounded-xl bg-surface-container-lowest p-card-padding card-shadow">
-        <p class="text-label-md text-on-surface-variant">Total paid in bills</p>
-        <p class="mt-1 text-headline-md text-error">{{ s.total_paid_bills | currencyAmount }}</p>
-      </div>
-      <div class="rounded-xl bg-surface-container-lowest p-card-padding card-shadow">
-        <p class="text-label-md text-on-surface-variant">Total transactions</p>
-        <p class="mt-1 text-headline-md text-on-surface">{{ s.total_transactions }}</p>
-      </div>
-    </div>
+    }
   }
 
   <div class="rounded-xl bg-surface-container-lowest p-card-padding card-shadow">
@@ -108,7 +153,13 @@
   </div>
 } @else {
   <div class="flex flex-col items-center justify-center rounded-xl bg-surface-container-lowest py-16 text-center card-shadow">
-    <span class="material-symbols-outlined text-4xl text-outline">person_search</span>
-    <p class="mt-2 text-body-md text-on-surface-variant">Search for a customer to view their report.</p>
+    <span class="material-symbols-outlined text-4xl text-outline">{{ mode() === 'agent' ? 'badge' : 'person_search' }}</span>
+    <p class="mt-2 text-body-md text-on-surface-variant">
+      @if (mode() === 'agent') {
+        Select an agent to view their transaction history.
+      } @else {
+        Search for a customer to view their report.
+      }
+    </p>
   </div>
 }
