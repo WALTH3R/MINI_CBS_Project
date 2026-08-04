@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import { CustomerStatistics, LedgerEntry, TransactionFilters } from '../models/transaction.model';
+import { PaginatedResponse } from '../models/pagination.model';
 import { toHttpParams } from './http-params.util';
 
 const CUSTOMERS_BASE = `${environment.apiBaseUrl}/api/accounts/customers`;
@@ -13,8 +14,10 @@ const AGENTS_BASE = `${environment.apiBaseUrl}/api/accounts/agents`;
 export class ReportingService {
   private readonly http = inject(HttpClient);
 
-  transactions(customerId: string, filters: TransactionFilters = {}): Observable<LedgerEntry[]> {
-    return this.http.get<LedgerEntry[]>(`${CUSTOMERS_BASE}/${customerId}/transactions/`, { params: toHttpParams(filters) });
+  transactions(customerId: string, filters: TransactionFilters = {}): Observable<PaginatedResponse<LedgerEntry>> {
+    return this.http.get<PaginatedResponse<LedgerEntry>>(`${CUSTOMERS_BASE}/${customerId}/transactions/`, {
+      params: toHttpParams(filters),
+    });
   }
 
   statistics(customerId: string, filters: TransactionFilters = {}): Observable<CustomerStatistics> {
@@ -23,7 +26,13 @@ export class ReportingService {
     });
   }
 
-  agentTransactions(agentId: string, filters: TransactionFilters = {}): Observable<LedgerEntry[]> {
-    return this.http.get<LedgerEntry[]>(`${AGENTS_BASE}/${agentId}/transactions/`, { params: toHttpParams(filters) });
+  agentTransactions(agentId: string, filters: TransactionFilters = {}): Observable<PaginatedResponse<LedgerEntry>> {
+    return this.http.get<PaginatedResponse<LedgerEntry>>(`${AGENTS_BASE}/${agentId}/transactions/`, {
+      params: toHttpParams(filters),
+    });
+  }
+
+  loadMore(url: string): Observable<PaginatedResponse<LedgerEntry>> {
+    return this.http.get<PaginatedResponse<LedgerEntry>>(url);
   }
 }

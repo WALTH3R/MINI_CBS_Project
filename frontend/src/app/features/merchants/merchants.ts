@@ -35,6 +35,8 @@ export class Merchants {
   protected readonly merchants = signal<Merchant[]>([]);
   protected readonly loading = signal(true);
   protected readonly loadError = signal<string | null>(null);
+  protected readonly nextPageUrl = signal<string | null>(null);
+  protected readonly loadingMore = signal(false);
 
   protected readonly agents = signal<Agent[]>([]);
   protected readonly walletProfiles = signal<WalletProfile[]>([]);
@@ -64,13 +66,33 @@ export class Merchants {
     this.loading.set(true);
     this.loadError.set(null);
     this.merchantService.list().subscribe({
-      next: (merchants) => {
-        this.merchants.set(merchants);
+      next: (response) => {
+        this.merchants.set(response.results);
+        this.nextPageUrl.set(response.next);
         this.loading.set(false);
       },
       error: () => {
         this.loadError.set('Could not load merchants.');
         this.loading.set(false);
+      },
+    });
+  }
+
+  loadMore(): void {
+    const url = this.nextPageUrl();
+    if (!url || this.loadingMore()) {
+      return;
+    }
+    this.loadingMore.set(true);
+    this.merchantService.loadMore<Merchant>(url).subscribe({
+      next: (response) => {
+        this.merchants.update((merchants) => [...merchants, ...response.results]);
+        this.nextPageUrl.set(response.next);
+        this.loadingMore.set(false);
+      },
+      error: () => {
+        this.loadError.set('Could not load more merchants.');
+        this.loadingMore.set(false);
       },
     });
   }

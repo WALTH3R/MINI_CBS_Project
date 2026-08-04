@@ -44,6 +44,8 @@ export class Transfers {
   protected readonly historyLoading = signal(false);
   protected readonly historyError = signal<string | null>(null);
   protected readonly directionFilter = signal<TransferDirection | ''>('');
+  protected readonly nextPageUrl = signal<string | null>(null);
+  protected readonly loadingMore = signal(false);
 
   // --- Agent: selected customer + wallet ---
   protected readonly selectedCustomer = signal<Customer | null>(null);
@@ -73,6 +75,7 @@ export class Transfers {
     this.selectedCustomer.set(null);
     this.selectedWallet.set(null);
     this.history.set([]);
+    this.nextPageUrl.set(null);
   }
 
   startSend(): void {
@@ -142,14 +145,34 @@ export class Transfers {
     }
   }
 
+  loadMore(): void {
+    const url = this.nextPageUrl();
+    if (!url || this.loadingMore()) {
+      return;
+    }
+    this.loadingMore.set(true);
+    this.transferService.loadMore(url).subscribe({
+      next: (response) => {
+        this.history.update((history) => [...history, ...response.results]);
+        this.nextPageUrl.set(response.next);
+        this.loadingMore.set(false);
+      },
+      error: () => {
+        this.historyError.set('Could not load more transfers.');
+        this.loadingMore.set(false);
+      },
+    });
+  }
+
   private loadHistoryFor(walletId: string): void {
     this.historyLoading.set(true);
     this.historyError.set(null);
     this.transferService
       .list(walletId, { direction: this.directionFilter() || undefined })
       .subscribe({
-        next: (transfers) => {
-          this.history.set(transfers);
+        next: (response) => {
+          this.history.set(response.results);
+          this.nextPageUrl.set(response.next);
           this.historyLoading.set(false);
         },
         error: () => {

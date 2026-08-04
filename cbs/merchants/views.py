@@ -3,6 +3,7 @@ from rest_framework.generics import ListAPIView, ListCreateAPIView, RetrieveUpda
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 
 from accounts.models import Role
+from cbs.pagination import StandardResultsPagination
 from cbs.utils import ValidatedUUIDLookupMixin, get_object_or_400
 from .models import Merchant, Transaction
 from .serializers import (
@@ -11,7 +12,8 @@ from .serializers import (
 
 
 class MerchantListCreateView(ListCreateAPIView):
-    queryset = Merchant.objects.select_related("owner", "wallet")
+    queryset = Merchant.objects.select_related("owner", "wallet").order_by("-created_at")
+    pagination_class = StandardResultsPagination
 
     def get_serializer_class(self):
         return MerchantCreateSerializer if self.request.method == "POST" else MerchantSerializer
@@ -36,6 +38,7 @@ class MerchantDetailView(ValidatedUUIDLookupMixin, RetrieveUpdateAPIView):
 
 class MerchantPaymentListView(ListAPIView):
     serializer_class = MerchantPaymentSerializer
+    pagination_class = StandardResultsPagination
 
     def get_merchant(self):
         if not hasattr(self, "_merchant"):

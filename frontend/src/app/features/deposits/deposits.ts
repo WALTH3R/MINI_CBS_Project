@@ -39,6 +39,8 @@ export class Deposits {
   protected readonly history = signal<Deposit[]>([]);
   protected readonly minAmountFilter = signal('');
   protected readonly maxAmountFilter = signal('');
+  protected readonly nextPageUrl = signal<string | null>(null);
+  protected readonly loadingMore = signal(false);
 
   constructor() {
     if (this.auth.isCustomer()) {
@@ -103,6 +105,25 @@ export class Deposits {
     }
   }
 
+  loadMore(): void {
+    const url = this.nextPageUrl();
+    if (!url || this.loadingMore()) {
+      return;
+    }
+    this.loadingMore.set(true);
+    this.depositService.loadMore(url).subscribe({
+      next: (response) => {
+        this.history.update((history) => [...history, ...response.results]);
+        this.nextPageUrl.set(response.next);
+        this.loadingMore.set(false);
+      },
+      error: () => {
+        this.historyError.set('Could not load more deposits.');
+        this.loadingMore.set(false);
+      },
+    });
+  }
+
   private loadHistoryFor(walletId: string): void {
     this.historyLoading.set(true);
     this.historyError.set(null);
@@ -112,8 +133,9 @@ export class Deposits {
         max_amount: this.maxAmountFilter() || undefined,
       })
       .subscribe({
-        next: (deposits) => {
-          this.history.set(deposits);
+        next: (response) => {
+          this.history.set(response.results);
+          this.nextPageUrl.set(response.next);
           this.historyLoading.set(false);
         },
         error: () => {

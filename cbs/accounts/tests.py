@@ -476,23 +476,23 @@ class ReportingTests(BaseAPITestCase):
     def test_list_shows_all_transaction_types(self):
         response = self.client.get(f"/api/accounts/customers/{self.payer_profile.id}/transactions/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 4)
-        types = {row["type"] for row in response.data}
+        self.assertEqual(response.data["count"], 4)
+        types = {row["type"] for row in response.data["results"]}
         self.assertEqual(types, {"DEPOSIT", "TRANSFER", "PAYMENT"})
 
     def test_filter_by_type(self):
         response = self.client.get(
             f"/api/accounts/customers/{self.payer_profile.id}/transactions/?type=TRANSFER"
         )
-        self.assertEqual(len(response.data), 1)
-        self.assertEqual(response.data[0]["type"], "TRANSFER")
+        self.assertEqual(response.data["count"], 1)
+        self.assertEqual(response.data["results"][0]["type"], "TRANSFER")
 
     def test_filter_by_status_failed(self):
         response = self.client.get(
             f"/api/accounts/customers/{self.payer_profile.id}/transactions/?status=FAILED"
         )
-        self.assertEqual(len(response.data), 1)
-        self.assertEqual(response.data[0]["status"], "FAILED")
+        self.assertEqual(response.data["count"], 1)
+        self.assertEqual(response.data["results"][0]["status"], "FAILED")
 
     def test_statistics_exclude_declined_payment_by_default(self):
         response = self.client.get(
@@ -521,7 +521,19 @@ class ReportingTests(BaseAPITestCase):
         self.auth_as(self.make_admin())
         response = self.client.get(f"/api/accounts/customers/{self.payer_profile.id}/transactions/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 4)
+        self.assertEqual(response.data["count"], 4)
+
+    def test_customer_transaction_list_is_paginated(self):
+        for _ in range(20):
+            do_deposit(self.payer_wallet, Decimal("1.00"), self.agent)
+
+        response = self.client.get(f"/api/accounts/customers/{self.payer_profile.id}/transactions/")
+        self.assertEqual(response.data["count"], 24)  # 4 from setUp + 20 more
+        self.assertEqual(len(response.data["results"]), 20)
+        self.assertIsNotNone(response.data["next"])
+
+        second_page = self.client.get(response.data["next"])
+        self.assertEqual(len(second_page.data["results"]), 4)
 
     def test_admin_can_view_customer_statistics(self):
         self.auth_as(self.make_admin())
@@ -545,8 +557,22 @@ class AgentTransactionTests(BaseAPITestCase):
         self.auth_as(self.make_admin())
         response = self.client.get(f"/api/accounts/agents/{self.agent.id}/transactions/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 2)
-        self.assertTrue(all(row["type"] == "DEPOSIT" for row in response.data))
+        self.assertEqual(response.data["count"], 2)
+        self.assertTrue(all(row["type"] == "DEPOSIT" for row in response.data["results"]))
+
+    def test_agent_transaction_list_is_paginated(self):
+        for _ in range(20):
+            do_deposit(self.payer_wallet, Decimal("1.00"), self.agent)
+
+        self.auth_as(self.make_admin())
+        response = self.client.get(f"/api/accounts/agents/{self.agent.id}/transactions/")
+
+        self.assertEqual(response.data["count"], 22)  # 2 from setUp + 20 more
+        self.assertEqual(len(response.data["results"]), 20)
+        self.assertIsNotNone(response.data["next"])
+
+        second_page = self.client.get(response.data["next"])
+        self.assertEqual(len(second_page.data["results"]), 2)
 
     def test_agent_cannot_view_own_transactions_via_this_endpoint(self):
         self.auth_as(self.agent)

@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import { Payment, TransactionFilters } from '../models/transaction.model';
+import { PaginatedResponse } from '../models/pagination.model';
 import { toHttpParams } from './http-params.util';
 
 const BASE = `${environment.apiBaseUrl}/api/wallets`;
@@ -16,7 +17,11 @@ export class PaymentService {
     return this.http.post<Payment>(`${BASE}/${walletId}/payments/`, { merchant_tag: merchantTag, amount });
   }
 
-  list(walletId: string, filters: TransactionFilters = {}): Observable<Payment[]> {
-    return this.http.get<Payment[]>(`${BASE}/${walletId}/payments/`, { params: toHttpParams(filters) });
+  list(walletId: string, filters: TransactionFilters = {}): Observable<PaginatedResponse<Payment>> {
+    return this.http.get<PaginatedResponse<Payment>>(`${BASE}/${walletId}/payments/`, { params: toHttpParams(filters) });
+  }
+
+  loadMore(url: string): Observable<PaginatedResponse<Payment>> {
+    return this.http.get<PaginatedResponse<Payment>>(url);
   }
 }

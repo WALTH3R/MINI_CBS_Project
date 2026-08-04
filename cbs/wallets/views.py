@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from accounts.models import Role
+from cbs.pagination import StandardResultsPagination
 from cbs.utils import ValidatedUUIDLookupMixin, get_object_or_400, parse_uuid
 from .models import Wallet, WalletCreationRequest, WalletProfile
 from .permissions import IsAgent, IsClient
@@ -179,6 +180,8 @@ class WalletProfileDetailView(ValidatedUUIDLookupMixin, RetrieveUpdateAPIView):
 
 
 class WalletDepositListCreateView(WalletScopedMixin, ListCreateAPIView):
+    pagination_class = StandardResultsPagination
+
     def get_permissions(self):
         if self.request.method == "POST":
             return [IsAgent()]
@@ -199,6 +202,8 @@ class WalletDepositListCreateView(WalletScopedMixin, ListCreateAPIView):
 
 
 class WalletTransferListCreateView(WalletScopedMixin, ListCreateAPIView):
+    pagination_class = StandardResultsPagination
+
     def get_permissions(self):
         if self.request.method == "POST":
             return [IsClient()]
@@ -231,6 +236,8 @@ class WalletTransferListCreateView(WalletScopedMixin, ListCreateAPIView):
 
 
 class WalletPaymentListCreateView(WalletScopedMixin, ListCreateAPIView):
+    pagination_class = StandardResultsPagination
+
     def get_permissions(self):
         if self.request.method == "POST":
             return [IsClient()]

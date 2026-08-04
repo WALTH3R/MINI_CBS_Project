@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
 
+from cbs.pagination import StandardResultsPagination
 from cbs.utils import ValidatedUUIDLookupMixin, get_object_or_400
 from wallets.models import Wallet
 from wallets.permissions import IsAgent, IsAgentOrAdmin
@@ -156,6 +157,7 @@ def _filter_transactions(qs, params, include_type=True):
 class CustomerTransactionListView(ListAPIView):
     serializer_class = TransactionSerializer
     permission_classes = [IsAgentOrAdmin]
+    pagination_class = StandardResultsPagination
 
     def get_customer(self):
         if not hasattr(self, "_customer"):
@@ -174,6 +176,7 @@ class AgentTransactionListView(ListAPIView):
     on customers' behalf, since transfers and payments are always self-service by the customer."""
     serializer_class = TransactionSerializer
     permission_classes = [IsAdminUser]
+    pagination_class = StandardResultsPagination
 
     def get_queryset(self):
         agent = get_object_or_400(User.objects.filter(role=Role.AGENT), self.kwargs["agent_id"])

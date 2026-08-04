@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import { Deposit, TransactionFilters } from '../models/transaction.model';
+import { PaginatedResponse } from '../models/pagination.model';
 import { toHttpParams } from './http-params.util';
 
 const BASE = `${environment.apiBaseUrl}/api/wallets`;
@@ -16,7 +17,11 @@ export class DepositService {
     return this.http.post<Deposit>(`${BASE}/${walletId}/deposits/`, { amount });
   }
 
-  list(walletId: string, filters: TransactionFilters = {}): Observable<Deposit[]> {
-    return this.http.get<Deposit[]>(`${BASE}/${walletId}/deposits/`, { params: toHttpParams(filters) });
+  list(walletId: string, filters: TransactionFilters = {}): Observable<PaginatedResponse<Deposit>> {
+    return this.http.get<PaginatedResponse<Deposit>>(`${BASE}/${walletId}/deposits/`, { params: toHttpParams(filters) });
+  }
+
+  loadMore(url: string): Observable<PaginatedResponse<Deposit>> {
+    return this.http.get<PaginatedResponse<Deposit>>(url);
   }
 }

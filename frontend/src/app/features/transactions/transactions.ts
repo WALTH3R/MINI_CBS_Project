@@ -45,6 +45,8 @@ export class Transactions {
   protected readonly error = signal<string | null>(null);
   protected readonly entries = signal<LedgerEntry[]>([]);
   protected readonly stats = signal<CustomerStatistics | null>(null);
+  protected readonly nextPageUrl = signal<string | null>(null);
+  protected readonly loadingMore = signal(false);
 
   protected readonly hasSelection = computed(() =>
     this.mode() === 'agent' ? !!this.selectedAgentId() : !!this.selectedCustomer(),
@@ -64,6 +66,7 @@ export class Transactions {
     this.entries.set([]);
     this.stats.set(null);
     this.error.set(null);
+    this.nextPageUrl.set(null);
   }
 
   onWalletSelected({ customer, wallet }: CustomerWalletSelection): void {
@@ -77,6 +80,7 @@ export class Transactions {
     this.selectedWallet.set(null);
     this.entries.set([]);
     this.stats.set(null);
+    this.nextPageUrl.set(null);
   }
 
   onAgentSelected(agentId: string): void {
@@ -85,11 +89,31 @@ export class Transactions {
       this.load();
     } else {
       this.entries.set([]);
+      this.nextPageUrl.set(null);
     }
   }
 
   applyFilters(): void {
     this.load();
+  }
+
+  loadMore(): void {
+    const url = this.nextPageUrl();
+    if (!url || this.loadingMore()) {
+      return;
+    }
+    this.loadingMore.set(true);
+    this.reportingService.loadMore(url).subscribe({
+      next: (response) => {
+        this.entries.update((entries) => [...entries, ...response.results]);
+        this.nextPageUrl.set(response.next);
+        this.loadingMore.set(false);
+      },
+      error: () => {
+        this.error.set('Could not load more transactions.');
+        this.loadingMore.set(false);
+      },
+    });
   }
 
   private load(): void {
@@ -117,8 +141,9 @@ export class Transactions {
     };
 
     this.reportingService.agentTransactions(agentId, filters).subscribe({
-      next: (entries) => {
-        this.entries.set(entries);
+      next: (response) => {
+        this.entries.set(response.results);
+        this.nextPageUrl.set(response.next);
         this.loading.set(false);
       },
       error: () => {
@@ -147,8 +172,9 @@ export class Transactions {
     };
 
     this.reportingService.transactions(customer.id, filters).subscribe({
-      next: (entries) => {
-        this.entries.set(entries);
+      next: (response) => {
+        this.entries.set(response.results);
+        this.nextPageUrl.set(response.next);
         this.loading.set(false);
       },
       error: () => {

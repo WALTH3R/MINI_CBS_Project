@@ -69,19 +69,15 @@ export class Payments {
   protected readonly history = signal<Payment[]>([]);
   protected readonly historyLoading = signal(false);
   protected readonly historyError = signal<string | null>(null);
+  protected readonly nextPageUrl = signal<string | null>(null);
+  protected readonly loadingMore = signal(false);
 
   // --- Agent: selected customer + wallet ---
   protected readonly selectedCustomer = signal<Customer | null>(null);
   protected readonly selectedWallet = signal<CustomerWalletSummary | null>(null);
 
   constructor() {
-    this.merchantService.list().subscribe({
-      next: (merchants) => {
-        this.merchants.set(merchants);
-        this.merchantsLoading.set(false);
-      },
-      error: () => this.merchantsLoading.set(false),
-    });
+    this.loadAllMerchants();
 
     if (this.auth.isCustomer()) {
       this.myWallet.ensureLoaded().subscribe({
@@ -106,6 +102,26 @@ export class Payments {
     this.selectedCustomer.set(null);
     this.selectedWallet.set(null);
     this.history.set([]);
+    this.nextPageUrl.set(null);
+  }
+
+  loadMore(): void {
+    const url = this.nextPageUrl();
+    if (!url || this.loadingMore()) {
+      return;
+    }
+    this.loadingMore.set(true);
+    this.paymentService.loadMore(url).subscribe({
+      next: (response) => {
+        this.history.update((history) => [...history, ...response.results]);
+        this.nextPageUrl.set(response.next);
+        this.loadingMore.set(false);
+      },
+      error: () => {
+        this.historyError.set('Could not load more payments.');
+        this.loadingMore.set(false);
+      },
+    });
   }
 
   selectMerchant(merchant: Merchant): void {
@@ -148,14 +164,33 @@ export class Payments {
     this.historyLoading.set(true);
     this.historyError.set(null);
     this.paymentService.list(walletId).subscribe({
-      next: (payments) => {
-        this.history.set(payments);
+      next: (response) => {
+        this.history.set(response.results);
+        this.nextPageUrl.set(response.next);
         this.historyLoading.set(false);
       },
       error: () => {
         this.historyError.set('Could not load payment history.');
         this.historyLoading.set(false);
       },
+    });
+  }
+
+  // The picker below filters merchants client-side (search + category), so it needs the full
+  // catalog rather than one page — follow `next` until exhausted instead of surfacing a "Load more".
+  private loadAllMerchants(url?: string, accumulated: Merchant[] = []): void {
+    const request = url ? this.merchantService.loadMore<Merchant>(url) : this.merchantService.list();
+    request.subscribe({
+      next: (response) => {
+        const merchants = [...accumulated, ...response.results];
+        if (response.next) {
+          this.loadAllMerchants(response.next, merchants);
+        } else {
+          this.merchants.set(merchants);
+          this.merchantsLoading.set(false);
+        }
+      },
+      error: () => this.merchantsLoading.set(false),
     });
   }
 }

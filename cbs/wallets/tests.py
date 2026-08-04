@@ -301,7 +301,7 @@ class DepositTests(BaseAPITestCase):
         self.auth_as(self.owner)
         response = self.client.get(f"/api/wallets/{self.wallet.id}/deposits/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
+        self.assertEqual(len(response.data["results"]), 1)
 
         self.auth_as(self.agent)
         response = self.client.get(f"/api/wallets/{self.wallet.id}/deposits/")
@@ -315,8 +315,23 @@ class DepositTests(BaseAPITestCase):
         self.auth_as(self.owner)
         response = self.client.get(f"/api/wallets/{self.wallet.id}/deposits/?min_amount=100")
 
-        self.assertEqual(len(response.data), 1)
-        self.assertEqual(Decimal(str(response.data[0]["amount"])), Decimal("500.00"))
+        self.assertEqual(len(response.data["results"]), 1)
+        self.assertEqual(Decimal(str(response.data["results"][0]["amount"])), Decimal("500.00"))
+
+    def test_list_is_paginated(self):
+        from wallets.services import do_deposit
+        for _ in range(24):
+            do_deposit(self.wallet, Decimal("1.00"), self.agent)
+
+        self.auth_as(self.owner)
+        response = self.client.get(f"/api/wallets/{self.wallet.id}/deposits/")
+
+        self.assertEqual(response.data["count"], 24)
+        self.assertEqual(len(response.data["results"]), 20)
+        self.assertIsNotNone(response.data["next"])
+
+        second_page = self.client.get(response.data["next"])
+        self.assertEqual(len(second_page.data["results"]), 4)
 
 
 class TransferTests(BaseAPITestCase):
@@ -387,11 +402,11 @@ class TransferTests(BaseAPITestCase):
         )
 
         response = self.client.get(f"/api/wallets/{self.sender_wallet.id}/transfers/")
-        self.assertEqual(response.data[0]["direction"], "DEBIT")
+        self.assertEqual(response.data["results"][0]["direction"], "DEBIT")
 
         self.auth_as(self.recipient)
         response = self.client.get(f"/api/wallets/{self.recipient_wallet.id}/transfers/")
-        self.assertEqual(response.data[0]["direction"], "CREDIT")
+        self.assertEqual(response.data["results"][0]["direction"], "CREDIT")
 
     def test_agent_can_view_but_not_initiate(self):
         self.auth_as(self.agent)

@@ -128,5 +128,13 @@
         </tbody>
       </table>
     </div>
+
+    @if (nextPageUrl()) {
+      <button
+        (click)="loadMore()"
+        [disabled]="loadingMore()"
+        class="mt-4 w-full rounded-lg py-2.5 text-label-md font-bold text-primary hover:bg-surface-container-low disabled:opacity-60"
+      >{{ loadingMore() ? 'Loading…' : 'Load more' }}</button>
+    }
   </div>
 }

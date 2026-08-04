@@ -77,6 +77,11 @@ SIMPLE_JWT = {
     'ROTATE_REFRESH_TOKENS': True,
 }
 
+# Render (and Vercel) terminate TLS at the proxy and forward this header — without trusting it,
+# request.build_absolute_uri() (used by DRF's pagination next/previous links) would emit http://
+# URLs even though the site is served over https://, which the frontend would refuse to fetch.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

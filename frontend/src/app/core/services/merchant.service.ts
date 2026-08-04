@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import { Merchant, MerchantCreatePayload, MerchantPaymentReceived } from '../models/merchant.model';
+import { PaginatedResponse } from '../models/pagination.model';
 
 const BASE = `${environment.apiBaseUrl}/api/merchants`;
 
@@ -11,8 +12,8 @@ const BASE = `${environment.apiBaseUrl}/api/merchants`;
 export class MerchantService {
   private readonly http = inject(HttpClient);
 
-  list(): Observable<Merchant[]> {
-    return this.http.get<Merchant[]>(`${BASE}/`);
+  list(): Observable<PaginatedResponse<Merchant>> {
+    return this.http.get<PaginatedResponse<Merchant>>(`${BASE}/`);
   }
 
   create(payload: MerchantCreatePayload): Observable<Merchant> {
@@ -23,7 +24,11 @@ export class MerchantService {
     return this.http.patch<Merchant>(`${BASE}/${merchantId}/`, { is_active: isActive });
   }
 
-  paymentsReceived(merchantId: string): Observable<MerchantPaymentReceived[]> {
-    return this.http.get<MerchantPaymentReceived[]>(`${BASE}/${merchantId}/payments/`);
+  paymentsReceived(merchantId: string): Observable<PaginatedResponse<MerchantPaymentReceived>> {
+    return this.http.get<PaginatedResponse<MerchantPaymentReceived>>(`${BASE}/${merchantId}/payments/`);
+  }
+
+  loadMore<T>(url: string): Observable<PaginatedResponse<T>> {
+    return this.http.get<PaginatedResponse<T>>(url);
   }
 }

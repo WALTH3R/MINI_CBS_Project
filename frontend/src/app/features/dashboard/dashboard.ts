@@ -1,7 +1,7 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { forkJoin } from 'rxjs';
+import { EMPTY, Observable, expand, forkJoin, reduce } from 'rxjs';
 
 import { AuthService } from '../../core/services/auth.service';
 import { MyWalletStore } from '../../core/services/my-wallet.store';
@@ -10,6 +10,7 @@ import { TransferService } from '../../core/services/transfer.service';
 import { PaymentService } from '../../core/services/payment.service';
 import { WalletService } from '../../core/services/wallet.service';
 import { Deposit, Transfer, Payment } from '../../core/models/transaction.model';
+import { PaginatedResponse } from '../../core/models/pagination.model';
 import { Wallet, WalletRequest } from '../../core/models/wallet.model';
 import { CurrencyAmountPipe } from '../../shared/pipes/currency-amount.pipe';
 import { StatusBadge } from '../../shared/status-badge/status-badge';
@@ -150,10 +151,12 @@ export class Dashboard {
     this.loading.set(true);
     this.loadError.set(null);
 
+    // The dashboard's totals need every transaction, not just the first page — follow `next`
+    // until exhausted rather than surfacing a "Load more" control here.
     forkJoin({
-      deposits: this.depositService.list(walletId),
-      transfers: this.transferService.list(walletId),
-      payments: this.paymentService.list(walletId),
+      deposits: this.fetchAllPages(this.depositService.list(walletId), (url) => this.depositService.loadMore(url)),
+      transfers: this.fetchAllPages(this.transferService.list(walletId), (url) => this.transferService.loadMore(url)),
+      payments: this.fetchAllPages(this.paymentService.list(walletId), (url) => this.paymentService.loadMore(url)),
     }).subscribe({
       next: ({ deposits, transfers, payments }) => {
         this.deposits.set(deposits);
@@ -168,5 +171,15 @@ export class Dashboard {
         this.loading.set(false);
       },
     });
+  }
+
+  private fetchAllPages<T>(
+    first$: Observable<PaginatedResponse<T>>,
+    loadMore: (url: string) => Observable<PaginatedResponse<T>>,
+  ): Observable<T[]> {
+    return first$.pipe(
+      expand((response) => (response.next ? loadMore(response.next) : EMPTY)),
+      reduce((all: T[], response) => [...all, ...response.results], [] as T[]),
+    );
   }
 }

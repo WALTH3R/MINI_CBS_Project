@@ -89,7 +89,7 @@ class MerchantListDetailTests(BaseAPITestCase):
         self.auth_as(self.customer)
         response = self.client.get("/api/merchants/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data[0]["wallet_tag"], self.merchant.wallet.tag)
+        self.assertEqual(response.data["results"][0]["wallet_tag"], self.merchant.wallet.tag)
 
     def test_admin_can_deactivate_merchant(self):
         self.auth_as(self.make_admin())
@@ -103,6 +103,22 @@ class MerchantListDetailTests(BaseAPITestCase):
         self.auth_as(self.agent)
         response = self.client.patch(f"/api/merchants/{self.merchant.id}/", {"is_active": False})
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_list_is_paginated(self):
+        for i in range(24):
+            self.make_merchant(f"Merchant{i}", self.agent, self.profile, tag=f"merch{i}.tag")
+
+        self.auth_as(self.customer)
+        response = self.client.get("/api/merchants/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 25)  # 24 + the one from setUp
+        self.assertEqual(len(response.data["results"]), 20)
+        self.assertIsNotNone(response.data["next"])
+
+        second_page = self.client.get(response.data["next"])
+        self.assertEqual(len(second_page.data["results"]), 5)
+        self.assertIsNone(second_page.data["next"])
 
 
 class MerchantPaymentListTests(BaseAPITestCase):
@@ -121,8 +137,8 @@ class MerchantPaymentListTests(BaseAPITestCase):
         response = self.client.get(f"/api/merchants/{self.merchant.id}/payments/")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 2)
-        statuses = {row["status"] for row in response.data}
+        self.assertEqual(response.data["count"], 2)
+        statuses = {row["status"] for row in response.data["results"]}
         self.assertEqual(statuses, {"COMPLETED", "FAILED"})
 
     def test_customer_cannot_view_merchant_payment_history(self):
