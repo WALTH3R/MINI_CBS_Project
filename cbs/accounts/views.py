@@ -6,6 +6,7 @@ from merchants.models import Transaction
 from rest_framework.generics import ListAPIView, ListCreateAPIView, RetrieveUpdateAPIView
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
 
@@ -26,6 +27,8 @@ User = get_user_model()
 
 class RoleTokenObtainPairView(TokenObtainPairView):
     serializer_class = RoleTokenObtainPairSerializer
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "login"
 
 
 class CustomerListCreateView(ListCreateAPIView):

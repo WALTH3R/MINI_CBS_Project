@@ -36,6 +36,54 @@ class TokenClaimsTests(BaseAPITestCase):
         self.assertEqual(str(response.data["id"]), str(agent.id))
 
 
+class LoginThrottleTests(BaseAPITestCase):
+    """Guards against password-guessing: DRF's ScopedRateThrottle, keyed by client IP, capped
+    at settings.REST_FRAMEWORK['DEFAULT_THROTTLE_RATES']['login'] (5/min)."""
+
+    def test_sixth_attempt_within_a_minute_is_throttled(self):
+        self.make_agent("kev")
+
+        for _ in range(5):
+            response = self.client.post("/api/token/", {"username": "kev", "password": "wrong"})
+            self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+        response = self.client.post("/api/token/", {"username": "kev", "password": "wrong"})
+        self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+        self.assertIn("Retry-After", response.headers)
+
+    def test_successful_attempts_also_count_toward_the_limit(self):
+        self.make_agent("kev")
+
+        for _ in range(5):
+            response = self.client.post("/api/token/", {"username": "kev", "password": "pass12345"})
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        response = self.client.post("/api/token/", {"username": "kev", "password": "pass12345"})
+        self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+    def test_throttle_is_shared_across_usernames_from_the_same_ip(self):
+        # The limit is per-IP, not per-username — 3 failed attempts on one account plus 2 on
+        # another still trips the same budget on the 6th request from that IP.
+        self.make_agent("kev")
+        self.make_agent("regid")
+
+        for _ in range(3):
+            self.client.post("/api/token/", {"username": "kev", "password": "wrong"})
+        for _ in range(2):
+            self.client.post("/api/token/", {"username": "regid", "password": "wrong"})
+
+        response = self.client.post("/api/token/", {"username": "kev", "password": "pass12345"})
+        self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+    def test_does_not_throttle_unrelated_endpoints(self):
+        agent = self.make_agent("kev")
+        self.auth_as(agent)
+
+        for _ in range(10):
+            response = self.client.get("/api/me/")
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+
 class AgentCreateTests(BaseAPITestCase):
     def test_admin_can_create_agent(self):
         admin = self.make_admin()

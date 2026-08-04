@@ -66,6 +66,13 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
+    'DEFAULT_THROTTLE_RATES': {
+        'login': '5/min',
+    },
+    # Render sits in front of the app as a single reverse-proxy hop, appending the real client IP
+    # as the last entry in X-Forwarded-For. Without this, DRF trusts the client-supplied header
+    # verbatim (num_proxies=None), letting a client spoof a fake leading IP to dodge throttling.
+    'NUM_PROXIES': 1,
 }
 
 # For JWT token lifetime settings

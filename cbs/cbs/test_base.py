@@ -1,6 +1,7 @@
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from rest_framework.test import APITestCase
 
 from accounts.models import CustomerProfile, Role
@@ -11,7 +12,12 @@ User = get_user_model()
 
 
 class BaseAPITestCase(APITestCase):
-    
+    def _pre_setup(self):
+        # DRF's throttling counters live in Django's process-wide cache, which — unlike the
+        # database — isn't reset between tests. _pre_setup (not setUp) so this always runs even
+        # for subclasses that override setUp() without calling super().
+        super()._pre_setup()
+        cache.clear()
 
     def make_admin(self, username="admin"):
         return User.objects.create_superuser(username=username, password="pass12345", email="")

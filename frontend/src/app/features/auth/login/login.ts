@@ -60,6 +60,8 @@ export class Login {
         error: (err: unknown) => {
           if (err instanceof HttpErrorResponse && (err.status === 401 || err.status === 400)) {
             this.errorMessage.set('Incorrect username or password. Please try again.');
+          } else if (err instanceof HttpErrorResponse && err.status === 429) {
+            this.errorMessage.set('Too many login attempts. Please wait a minute and try again.');
           } else {
             this.errorMessage.set('Something went wrong on our end. Please try again in a moment.');
           }
