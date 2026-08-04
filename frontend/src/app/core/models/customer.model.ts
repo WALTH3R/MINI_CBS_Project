@@ -18,6 +18,7 @@ export interface Customer {
   place_of_birth: string;
   national_id_number: string;
   tag: string;
+  is_active: boolean;
   wallets: CustomerWalletSummary[];
   created_at: string;
 }

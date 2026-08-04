@@ -18,4 +18,8 @@ export class AgentService {
   create(payload: AgentCreatePayload): Observable<Agent> {
     return this.http.post<Agent>(`${BASE}/`, payload);
   }
+
+  setActive(agentId: string, isActive: boolean): Observable<Agent> {
+    return this.http.patch<Agent>(`${BASE}/${agentId}/`, { is_active: isActive });
+  }
 }

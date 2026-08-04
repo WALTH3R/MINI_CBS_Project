@@ -11,11 +11,12 @@ import { Customer, MaritalStatus } from '../../core/models/customer.model';
 import { WalletProfile } from '../../core/models/wallet.model';
 import { CurrencyAmountPipe } from '../../shared/pipes/currency-amount.pipe';
 import { TransientSignal } from '../../shared/utils/transient-signal';
+import { StatusBadge } from '../../shared/status-badge/status-badge';
 
 @Component({
   selector: 'app-customers',
   standalone: true,
-  imports: [DatePipe, CurrencyAmountPipe, FormsModule],
+  imports: [DatePipe, CurrencyAmountPipe, FormsModule, StatusBadge],
   templateUrl: './customers.html',
 })
 export class Customers {
@@ -47,6 +48,11 @@ export class Customers {
   protected readonly enrolling = signal(false);
   private readonly enrollErrorMsg = new TransientSignal<string>();
   protected readonly enrollError = this.enrollErrorMsg.value;
+
+  // --- Admin: activate/deactivate the selected customer's account ---
+  protected readonly togglingStatus = signal(false);
+  private readonly statusErrorMsg = new TransientSignal<string>();
+  protected readonly statusError = this.statusErrorMsg.value;
 
   constructor() {
     if (this.auth.isAgent()) {
@@ -154,5 +160,23 @@ export class Customers {
           }
         },
       });
+  }
+
+  toggleCustomerActive(): void {
+    const customer = this.selectedCustomer();
+    if (!customer || this.togglingStatus()) {
+      return;
+    }
+    this.togglingStatus.set(true);
+    this.customerService.setActive(customer.id, !customer.is_active).subscribe({
+      next: (updated) => {
+        this.selectedCustomer.set(updated);
+        this.togglingStatus.set(false);
+      },
+      error: () => {
+        this.statusErrorMsg.set('Could not update this customer\'s status.');
+        this.togglingStatus.set(false);
+      },
+    });
   }
 }

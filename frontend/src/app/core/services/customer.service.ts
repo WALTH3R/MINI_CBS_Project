@@ -23,4 +23,8 @@ export class CustomerService {
   create(payload: CustomerCreatePayload): Observable<Customer> {
     return this.http.post<Customer>(`${BASE}/`, payload);
   }
+
+  setActive(customerId: string, isActive: boolean): Observable<Customer> {
+    return this.http.patch<Customer>(`${BASE}/${customerId}/`, { is_active: isActive });
+  }
 }

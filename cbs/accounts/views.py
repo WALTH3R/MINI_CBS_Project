@@ -3,7 +3,7 @@ from decimal import Decimal
 from django.contrib.auth import get_user_model
 from django.db.models import Q, Sum
 from merchants.models import Transaction
-from rest_framework.generics import ListAPIView, ListCreateAPIView, RetrieveAPIView
+from rest_framework.generics import ListAPIView, ListCreateAPIView, RetrieveUpdateAPIView
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -16,7 +16,8 @@ from wallets.serializers import WalletCreateSerializer, WalletCreationRequestSer
 from .auth import RoleTokenObtainPairSerializer
 from .models import CustomerProfile, Role
 from .serializers import (
-    AgentCreateSerializer, CustomerCreateSerializer, CustomerProfileSerializer, TransactionSerializer,
+    AgentCreateSerializer, AgentStatusUpdateSerializer, CustomerCreateSerializer, CustomerProfileSerializer,
+    CustomerStatusUpdateSerializer, TransactionSerializer,
 )
 
 User = get_user_model()
@@ -51,10 +52,25 @@ class CustomerListCreateView(ListCreateAPIView):
         return qs
 
 
-class CustomerDetailView(ValidatedUUIDLookupMixin, RetrieveAPIView):
+class CustomerDetailView(ValidatedUUIDLookupMixin, RetrieveUpdateAPIView):
     queryset = CustomerProfile.objects.select_related("user")
-    serializer_class = CustomerProfileSerializer
-    permission_classes = [IsAgentOrAdmin]
+
+    def get_serializer_class(self):
+        if self.request.method in ("PUT", "PATCH"):
+            return CustomerStatusUpdateSerializer
+        return CustomerProfileSerializer
+
+    def get_permissions(self):
+        if self.request.method in ("PUT", "PATCH"):
+            return [IsAdminUser()]
+        return [IsAgentOrAdmin()]
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(CustomerProfileSerializer(instance).data)
 
 
 class AgentListCreateView(ListCreateAPIView):
@@ -62,6 +78,23 @@ class AgentListCreateView(ListCreateAPIView):
     queryset = User.objects.filter(role=Role.AGENT).order_by("username")
     serializer_class = AgentCreateSerializer
     permission_classes = [IsAdminUser]
+
+
+class AgentDetailView(ValidatedUUIDLookupMixin, RetrieveUpdateAPIView):
+    queryset = User.objects.filter(role=Role.AGENT)
+    permission_classes = [IsAdminUser]
+
+    def get_serializer_class(self):
+        if self.request.method in ("PUT", "PATCH"):
+            return AgentStatusUpdateSerializer
+        return AgentCreateSerializer
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(AgentCreateSerializer(instance).data)
 
 
 class CustomerWalletListCreateView(ListCreateAPIView):

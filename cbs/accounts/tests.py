@@ -192,6 +192,106 @@ class CustomerDetailTests(BaseAPITestCase):
         response = self.client.get("/api/accounts/customers/not-a-uuid/")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+    def test_admin_can_deactivate_customer(self):
+        self.auth_as(self.make_admin())
+        response = self.client.patch(
+            f"/api/accounts/customers/{self.customer_profile.id}/", {"is_active": False},
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["is_active"], False)
+        self.assertIn("wallets", response.data)  # full CustomerProfileSerializer shape, not the narrow update one
+
+        self.customer_user.refresh_from_db()
+        self.assertFalse(self.customer_user.is_active)
+
+    def test_admin_can_reactivate_customer(self):
+        self.customer_user.is_active = False
+        self.customer_user.save()
+        self.auth_as(self.make_admin())
+
+        response = self.client.patch(
+            f"/api/accounts/customers/{self.customer_profile.id}/", {"is_active": True},
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.customer_user.refresh_from_db()
+        self.assertTrue(self.customer_user.is_active)
+
+    def test_agent_cannot_change_customer_status(self):
+        self.auth_as(self.agent)
+        response = self.client.patch(
+            f"/api/accounts/customers/{self.customer_profile.id}/", {"is_active": False},
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_customer_cannot_change_own_status(self):
+        self.auth_as(self.customer_user)
+        response = self.client.patch(
+            f"/api/accounts/customers/{self.customer_profile.id}/", {"is_active": False},
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_deactivated_customer_cannot_log_in(self):
+        self.customer_user.is_active = False
+        self.customer_user.save()
+
+        response = self.client.post("/api/token/", {"username": "jdoe", "password": "pass12345"})
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+class AgentStatusTests(BaseAPITestCase):
+    def setUp(self):
+        self.admin = self.make_admin()
+        self.agent = self.make_agent("agent1")
+
+    def test_admin_can_deactivate_agent(self):
+        self.auth_as(self.admin)
+        response = self.client.patch(
+            f"/api/accounts/agents/{self.agent.id}/", {"is_active": False},
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["is_active"], False)
+        self.assertEqual(response.data["username"], "agent1")  # full AgentCreateSerializer shape
+
+        self.agent.refresh_from_db()
+        self.assertFalse(self.agent.is_active)
+
+    def test_admin_can_reactivate_agent(self):
+        self.agent.is_active = False
+        self.agent.save()
+        self.auth_as(self.admin)
+
+        response = self.client.patch(
+            f"/api/accounts/agents/{self.agent.id}/", {"is_active": True},
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.agent.refresh_from_db()
+        self.assertTrue(self.agent.is_active)
+
+    def test_agent_cannot_change_own_status(self):
+        self.auth_as(self.agent)
+        response = self.client.patch(
+            f"/api/accounts/agents/{self.agent.id}/", {"is_active": False},
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_deactivated_agent_cannot_log_in(self):
+        self.agent.is_active = False
+        self.agent.save()
+
+        response = self.client.post("/api/token/", {"username": "agent1", "password": "pass12345"})
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
 
 class CustomerListTests(BaseAPITestCase):
     def setUp(self):

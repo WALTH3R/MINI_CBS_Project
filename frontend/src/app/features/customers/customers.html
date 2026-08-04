@@ -64,11 +64,30 @@
   <div class="rounded-xl bg-surface-container-lowest p-card-padding card-shadow">
     <div class="flex items-start justify-between">
       <div>
-        <h3 class="text-headline-sm text-on-surface">{{ customer.first_name }} {{ customer.name }}</h3>
+        <div class="flex items-center gap-2">
+          <h3 class="text-headline-sm text-on-surface">{{ customer.first_name }} {{ customer.name }}</h3>
+          <app-status-badge [status]="customer.is_active ? 'ACTIVE' : 'INACTIVE'" />
+        </div>
         <p class="text-label-md text-on-surface-variant">{{ customer.username }} · {{ customer.tag }}</p>
       </div>
-      <button (click)="clearSelection()" class="text-label-md text-on-surface-variant hover:text-primary">Change</button>
+      <div class="flex items-center gap-4">
+        @if (auth.isAdmin()) {
+          <button
+            (click)="toggleCustomerActive()"
+            [disabled]="togglingStatus()"
+            class="text-label-md font-bold text-primary hover:underline disabled:opacity-60"
+          >{{ customer.is_active ? 'Deactivate' : 'Activate' }}</button>
+        }
+        <button (click)="clearSelection()" class="text-label-md text-on-surface-variant hover:text-primary">Change</button>
+      </div>
     </div>
+
+    @if (statusError()) {
+      <div class="mt-4 flex items-start gap-2 rounded-lg border border-error/20 bg-error-container px-4 py-3">
+        <span class="material-symbols-outlined text-on-error-container">error</span>
+        <p class="text-body-md text-on-error-container">{{ statusError() }}</p>
+      </div>
+    }
 
     <div class="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 text-label-md">
       <div>

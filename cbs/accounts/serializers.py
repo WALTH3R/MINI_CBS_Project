@@ -14,6 +14,7 @@ class CustomerProfileSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source="user.username", read_only=True)
     name = serializers.CharField(source="user.last_name", read_only=True)
     first_name = serializers.CharField(source="user.first_name", read_only=True)
+    is_active = serializers.BooleanField(source="user.is_active", read_only=True)
     wallets = serializers.SerializerMethodField()
 
     class Meta:
@@ -21,7 +22,7 @@ class CustomerProfileSerializer(serializers.ModelSerializer):
         fields = [
             "id", "username", "name", "first_name", "parent_name",
             "date_of_birth", "marital_status", "place_of_birth",
-            "national_id_number", "tag", "wallets", "created_at",
+            "national_id_number", "tag", "is_active", "wallets", "created_at",
         ]
         read_only_fields = fields
 
@@ -36,6 +37,16 @@ class CustomerProfileSerializer(serializers.ModelSerializer):
             }
             for wallet in wallets
         ]
+
+
+class CustomerStatusUpdateSerializer(serializers.Serializer):
+    """`instance` here is the CustomerProfile — the flag itself lives on the related User."""
+    is_active = serializers.BooleanField()
+
+    def update(self, instance, validated_data):
+        instance.user.is_active = validated_data["is_active"]
+        instance.user.save(update_fields=["is_active"])
+        return instance
 
 
 class CustomerCreateSerializer(serializers.ModelSerializer):
@@ -84,8 +95,8 @@ class AgentCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ["id", "username", "password", "first_name", "last_name"]
-        read_only_fields = ["id"]
+        fields = ["id", "username", "password", "first_name", "last_name", "is_active"]
+        read_only_fields = ["id", "is_active"]
 
     def validate_username(self, value):
         if User.objects.filter(username=value).exists():
@@ -98,6 +109,12 @@ class AgentCreateSerializer(serializers.ModelSerializer):
         user.set_password(password)
         user.save()
         return user
+
+
+class AgentStatusUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ["is_active"]
 
 
 class TransactionSerializer(serializers.ModelSerializer):

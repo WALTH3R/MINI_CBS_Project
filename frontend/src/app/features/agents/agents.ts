@@ -4,11 +4,12 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { AgentService } from '../../core/services/agent.service';
 import { Agent } from '../../core/models/agent.model';
 import { TransientSignal } from '../../shared/utils/transient-signal';
+import { StatusBadge } from '../../shared/status-badge/status-badge';
 
 @Component({
   selector: 'app-agents',
   standalone: true,
-  imports: [],
+  imports: [StatusBadge],
   templateUrl: './agents.html',
 })
 export class Agents {
@@ -17,6 +18,10 @@ export class Agents {
   protected readonly agents = signal<Agent[]>([]);
   protected readonly loading = signal(true);
   protected readonly loadError = signal<string | null>(null);
+  private readonly togglingId = signal<string | null>(null);
+  protected isToggling(id: string): boolean {
+    return this.togglingId() === id;
+  }
 
   protected readonly username = signal('');
   protected readonly password = signal('');
@@ -81,5 +86,22 @@ export class Agents {
           }
         },
       });
+  }
+
+  toggleActive(agent: Agent): void {
+    if (this.togglingId()) {
+      return;
+    }
+    this.togglingId.set(agent.id);
+    this.agentService.setActive(agent.id, !agent.is_active).subscribe({
+      next: (updated) => {
+        this.agents.update((agents) => agents.map((a) => (a.id === updated.id ? updated : a)));
+        this.togglingId.set(null);
+      },
+      error: () => {
+        this.submitErrorMsg.set('Could not update this agent.');
+        this.togglingId.set(null);
+      },
+    });
   }
 }
