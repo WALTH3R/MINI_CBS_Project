@@ -3,11 +3,15 @@ from decimal import Decimal
 from django.contrib.auth import get_user_model
 from django.db.models import Q, Sum
 from merchants.models import Transaction
+from rest_framework import status
+from rest_framework.exceptions import ValidationError
 from rest_framework.generics import ListAPIView, ListCreateAPIView, RetrieveUpdateAPIView
-from rest_framework.permissions import IsAdminUser
+from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
+from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 from cbs.pagination import StandardResultsPagination
@@ -29,6 +33,22 @@ class RoleTokenObtainPairView(TokenObtainPairView):
     serializer_class = RoleTokenObtainPairSerializer
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "login"
+
+
+class LogoutView(APIView):
+    """Blacklists the refresh token so it can't be used again — the access token already issued
+    keeps working until its own (short) expiry, but the session can no longer be renewed."""
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        refresh = request.data.get("refresh")
+        if not refresh:
+            raise ValidationError({"refresh": "This field is required."})
+        try:
+            RefreshToken(refresh).blacklist()
+        except TokenError:
+            raise ValidationError({"refresh": "Invalid or already-invalidated token."})
+        return Response(status=status.HTTP_205_RESET_CONTENT)
 
 
 class CustomerListCreateView(ListCreateAPIView):

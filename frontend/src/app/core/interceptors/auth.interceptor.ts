@@ -5,7 +5,7 @@ import { catchError, switchMap, throwError } from 'rxjs';
 
 import { AuthService } from '../services/auth.service';
 
-const PUBLIC_PATHS = ['/api/token/', '/api/token/refresh/'];
+const PUBLIC_PATHS = ['/api/token/', '/api/token/refresh/', '/api/logout/'];
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(AuthService);

@@ -19,7 +19,7 @@ from django.contrib import admin
 from django.urls import path, include
 from rest_framework_simplejwt.views import TokenRefreshView
 
-from accounts.views import RoleTokenObtainPairView
+from accounts.views import LogoutView, RoleTokenObtainPairView
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -30,5 +30,6 @@ urlpatterns = [
     path('api/audit/', include('audit.urls')),
     path('api/token/', RoleTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('api/logout/', LogoutView.as_view(), name='logout'),
     path('api-auth/', include('rest_framework.urls')),
 ]

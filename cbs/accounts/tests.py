@@ -84,6 +84,59 @@ class LoginThrottleTests(BaseAPITestCase):
             self.assertEqual(response.status_code, status.HTTP_200_OK)
 
 
+class LogoutTests(BaseAPITestCase):
+    def _login(self, username="kev", password="pass12345"):
+        response = self.client.post("/api/token/", {"username": username, "password": password})
+        return response.data["access"], response.data["refresh"]
+
+    def test_logout_blacklists_the_refresh_token(self):
+        self.make_agent("kev")
+        _, refresh = self._login()
+
+        response = self.client.post("/api/logout/", {"refresh": refresh}, content_type="application/json")
+        self.assertEqual(response.status_code, status.HTTP_205_RESET_CONTENT)
+
+        # The blacklisted refresh token can no longer be used to mint a new access token.
+        response = self.client.post("/api/token/refresh/", {"refresh": refresh}, content_type="application/json")
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_logout_requires_a_refresh_token(self):
+        response = self.client.post("/api/logout/", {}, content_type="application/json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_logout_with_a_garbage_token_is_a_400(self):
+        response = self.client.post("/api/logout/", {"refresh": "not-a-real-token"}, content_type="application/json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_logout_twice_with_the_same_token_is_a_400_the_second_time(self):
+        self.make_agent("kev")
+        _, refresh = self._login()
+
+        first = self.client.post("/api/logout/", {"refresh": refresh}, content_type="application/json")
+        self.assertEqual(first.status_code, status.HTTP_205_RESET_CONTENT)
+
+        second = self.client.post("/api/logout/", {"refresh": refresh}, content_type="application/json")
+        self.assertEqual(second.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_rotated_away_refresh_token_is_also_blacklisted(self):
+        # BLACKLIST_AFTER_ROTATION=True: refreshing issues a new refresh token and invalidates
+        # the one that was just used, closing the gap where a rotated-out token still worked.
+        self.make_agent("kev")
+        _, original_refresh = self._login()
+
+        refresh_response = self.client.post(
+            "/api/token/refresh/", {"refresh": original_refresh}, content_type="application/json",
+        )
+        self.assertEqual(refresh_response.status_code, status.HTTP_200_OK)
+        new_refresh = refresh_response.data["refresh"]
+        self.assertNotEqual(new_refresh, original_refresh)
+
+        replay = self.client.post(
+            "/api/token/refresh/", {"refresh": original_refresh}, content_type="application/json",
+        )
+        self.assertEqual(replay.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
 class AgentCreateTests(BaseAPITestCase):
     def test_admin_can_create_agent(self):
         admin = self.make_admin()

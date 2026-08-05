@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { Observable, map, tap } from 'rxjs';
+import { Observable, catchError, map, of, tap } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import { AccessTokenClaims, CurrentUser, TokenPair } from '../models/user.model';
@@ -51,11 +51,20 @@ export class AuthService {
     );
   }
 
+  /** Clears the local session immediately (no need to wait on the network for that), and
+   * best-effort blacklists the refresh token server-side so it can't be replayed — if that call
+   * fails (offline, etc.) the local logout still stands; the token just expires naturally. */
   logout(): void {
+    const refresh = this.getRefreshToken();
+
     localStorage.removeItem(ACCESS_TOKEN_KEY);
     localStorage.removeItem(REFRESH_TOKEN_KEY);
     this.currentUserSignal.set(null);
     this.myWallet.clear();
+
+    if (refresh) {
+      this.http.post(`${environment.apiBaseUrl}/api/logout/`, { refresh }).pipe(catchError(() => of(null))).subscribe();
+    }
   }
 
   /** Used by the auth interceptor to silently renew an expired access token. */

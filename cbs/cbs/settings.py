@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     "merchants",
     "audit",
     "rest_framework",
+    "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
 ]
 
@@ -83,6 +84,10 @@ SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'ROTATE_REFRESH_TOKENS': True,
+    # Without this, a rotated-away refresh token (see ROTATE_REFRESH_TOKENS above) is simply
+    # discarded, not invalidated — it would still work if replayed. Also what makes logout
+    # meaningful: LogoutView blacklists the current refresh token outright.
+    'BLACKLIST_AFTER_ROTATION': True,
 }
 
 # Render (and Vercel) terminate TLS at the proxy and forward this header — without trusting it,

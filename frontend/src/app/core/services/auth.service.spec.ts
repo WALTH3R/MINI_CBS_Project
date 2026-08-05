@@ -80,18 +80,46 @@ describe('AuthService', () => {
     expect(service.isAdmin()).toBe(true);
   });
 
-  it('logout clears both tokens and resets currentUser', () => {
+  it('logout clears both tokens and resets currentUser immediately, and blacklists the refresh token', () => {
     const service = setup();
     const access = fakeToken(accessClaims());
     service.login('kev', 'pass').subscribe();
-    httpMock.expectOne(`${environment.apiBaseUrl}/api/token/`).flush({ access, refresh: 'r' });
+    httpMock.expectOne(`${environment.apiBaseUrl}/api/token/`).flush({ access, refresh: 'refresh-1' });
     expect(service.currentUser()).not.toBeNull();
 
     service.logout();
 
+    // Local state is cleared synchronously — logout doesn't wait on the network.
     expect(service.getAccessToken()).toBeNull();
     expect(service.getRefreshToken()).toBeNull();
     expect(service.currentUser()).toBeNull();
+
+    const req = httpMock.expectOne(`${environment.apiBaseUrl}/api/logout/`);
+    expect(req.request.body).toEqual({ refresh: 'refresh-1' });
+    req.flush(null, { status: 205, statusText: 'Reset Content' });
+  });
+
+  it('logout still clears local state even if the server-side blacklist call fails', () => {
+    const service = setup();
+    const access = fakeToken(accessClaims());
+    service.login('kev', 'pass').subscribe();
+    httpMock.expectOne(`${environment.apiBaseUrl}/api/token/`).flush({ access, refresh: 'refresh-1' });
+
+    service.logout();
+
+    expect(service.currentUser()).toBeNull();
+    httpMock.expectOne(`${environment.apiBaseUrl}/api/logout/`).flush(
+      { detail: 'error' }, { status: 400, statusText: 'Bad Request' },
+    );
+  });
+
+  it('logout does not call the server when there is no refresh token to blacklist', () => {
+    const service = setup();
+
+    service.logout();
+
+    expect(service.currentUser()).toBeNull();
+    httpMock.verify(); // no /api/logout/ request should have been made
   });
 
   it('refreshAccessToken posts the stored refresh token and updates the stored access token + currentUser', () => {
