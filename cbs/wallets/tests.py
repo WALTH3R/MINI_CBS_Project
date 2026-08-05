@@ -1,8 +1,15 @@
+import uuid
 from decimal import Decimal
 
 from rest_framework import status
 
 from cbs.test_base import BaseAPITestCase
+
+
+def idempotency_headers():
+    """A fresh Idempotency-Key for a POST that's meant to be a genuinely new operation —
+    required on /deposits/, /transfers/, and /payments/ since wallets/idempotency.py."""
+    return {"headers": {"Idempotency-Key": str(uuid.uuid4())}}
 
 
 class MyWalletTests(BaseAPITestCase):
@@ -275,7 +282,9 @@ class DepositTests(BaseAPITestCase):
 
     def test_agent_can_deposit(self):
         self.auth_as(self.agent)
-        response = self.client.post(f"/api/wallets/{self.wallet.id}/deposits/", {"amount": "100.00"})
+        response = self.client.post(
+            f"/api/wallets/{self.wallet.id}/deposits/", {"amount": "100.00"}, **idempotency_headers(),
+        )
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertTrue(response.data["reference"].startswith("DEP-"))
@@ -286,12 +295,21 @@ class DepositTests(BaseAPITestCase):
 
     def test_customer_cannot_deposit(self):
         self.auth_as(self.owner)
-        response = self.client.post(f"/api/wallets/{self.wallet.id}/deposits/", {"amount": "100.00"})
+        response = self.client.post(
+            f"/api/wallets/{self.wallet.id}/deposits/", {"amount": "100.00"}, **idempotency_headers(),
+        )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_exceeds_max_deposit_amount_rejected(self):
         self.auth_as(self.agent)
-        response = self.client.post(f"/api/wallets/{self.wallet.id}/deposits/", {"amount": "999999999"})
+        response = self.client.post(
+            f"/api/wallets/{self.wallet.id}/deposits/", {"amount": "999999999"}, **idempotency_headers(),
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_missing_idempotency_key_is_a_400(self):
+        self.auth_as(self.agent)
+        response = self.client.post(f"/api/wallets/{self.wallet.id}/deposits/", {"amount": "100.00"})
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_only_owner_can_view_deposit_history_not_agent(self):
@@ -352,6 +370,7 @@ class TransferTests(BaseAPITestCase):
         response = self.client.post(
             f"/api/wallets/{self.sender_wallet.id}/transfers/",
             {"to_tag": self.recipient_wallet.tag, "amount": "50.00"},
+            **idempotency_headers(),
         )
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -370,6 +389,7 @@ class TransferTests(BaseAPITestCase):
         response = self.client.post(
             f"/api/wallets/{self.sender_wallet.id}/transfers/",
             {"to_tag": self.recipient_wallet.tag, "amount": "999.00"},
+            **idempotency_headers(),
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
@@ -377,6 +397,7 @@ class TransferTests(BaseAPITestCase):
         response = self.client.post(
             f"/api/wallets/{self.sender_wallet.id}/transfers/",
             {"to_tag": self.usd_wallet.tag, "amount": "10.00"},
+            **idempotency_headers(),
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
@@ -384,6 +405,7 @@ class TransferTests(BaseAPITestCase):
         response = self.client.post(
             f"/api/wallets/{self.sender_wallet.id}/transfers/",
             {"to_tag": self.sender_wallet.tag, "amount": "10.00"},
+            **idempotency_headers(),
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
@@ -392,6 +414,14 @@ class TransferTests(BaseAPITestCase):
         response = self.client.post(
             f"/api/wallets/{self.sender_wallet.id}/transfers/",
             {"to_tag": merchant.wallet.tag, "amount": "10.00"},
+            **idempotency_headers(),
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_missing_idempotency_key_is_a_400(self):
+        response = self.client.post(
+            f"/api/wallets/{self.sender_wallet.id}/transfers/",
+            {"to_tag": self.recipient_wallet.tag, "amount": "10.00"},
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
@@ -399,6 +429,7 @@ class TransferTests(BaseAPITestCase):
         self.client.post(
             f"/api/wallets/{self.sender_wallet.id}/transfers/",
             {"to_tag": self.recipient_wallet.tag, "amount": "50.00"},
+            **idempotency_headers(),
         )
 
         response = self.client.get(f"/api/wallets/{self.sender_wallet.id}/transfers/")
@@ -417,6 +448,7 @@ class TransferTests(BaseAPITestCase):
         response = self.client.post(
             f"/api/wallets/{self.sender_wallet.id}/transfers/",
             {"to_tag": self.recipient_wallet.tag, "amount": "10.00"},
+            **idempotency_headers(),
         )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
@@ -437,6 +469,7 @@ class PaymentTests(BaseAPITestCase):
         response = self.client.post(
             f"/api/wallets/{self.payer_wallet.id}/payments/",
             {"merchant_tag": self.merchant.wallet.tag, "amount": "40.00"},
+            **idempotency_headers(),
         )
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -450,6 +483,7 @@ class PaymentTests(BaseAPITestCase):
         response = self.client.post(
             f"/api/wallets/{self.payer_wallet.id}/payments/",
             {"merchant_tag": self.merchant.wallet.tag, "amount": "500.00"},
+            **idempotency_headers(),
         )
 
         # Key behavior from Topic 4: this is a 201 with a FAILED record, not a 400.
@@ -467,6 +501,7 @@ class PaymentTests(BaseAPITestCase):
         response = self.client.post(
             f"/api/wallets/{self.payer_wallet.id}/payments/",
             {"merchant_tag": self.merchant.wallet.tag, "amount": "10.00"},
+            **idempotency_headers(),
         )
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -477,6 +512,14 @@ class PaymentTests(BaseAPITestCase):
         response = self.client.post(
             f"/api/wallets/{self.payer_wallet.id}/payments/",
             {"merchant_tag": "no.such.tag", "amount": "10.00"},
+            **idempotency_headers(),
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_missing_idempotency_key_is_a_400(self):
+        response = self.client.post(
+            f"/api/wallets/{self.payer_wallet.id}/payments/",
+            {"merchant_tag": self.merchant.wallet.tag, "amount": "10.00"},
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
@@ -489,5 +532,70 @@ class PaymentTests(BaseAPITestCase):
         response = self.client.post(
             f"/api/wallets/{self.payer_wallet.id}/payments/",
             {"merchant_tag": self.merchant.wallet.tag, "amount": "10.00"},
+            **idempotency_headers(),
         )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+
+class IdempotencyTests(BaseAPITestCase):
+    def setUp(self):
+        self.agent = self.make_agent()
+        self.profile = self.make_wallet_profile()
+        self.owner, _, self.wallet = self.make_customer("owner", self.profile)
+        self.auth_as(self.agent)
+
+    def test_repeating_the_same_key_replays_the_first_response_without_re_executing(self):
+        key = str(uuid.uuid4())
+
+        first = self.client.post(
+            f"/api/wallets/{self.wallet.id}/deposits/", {"amount": "100.00"}, headers={"Idempotency-Key": key},
+        )
+        self.assertEqual(first.status_code, status.HTTP_201_CREATED)
+
+        second = self.client.post(
+            f"/api/wallets/{self.wallet.id}/deposits/", {"amount": "100.00"}, headers={"Idempotency-Key": key},
+        )
+        self.assertEqual(second.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(second.data["reference"], first.data["reference"])
+
+        # The real assertion: the mutation only actually happened once.
+        self.wallet.refresh_from_db()
+        self.assertEqual(self.wallet.balance, Decimal("100.00"))
+
+    def test_different_keys_are_independent_operations(self):
+        self.client.post(f"/api/wallets/{self.wallet.id}/deposits/", {"amount": "100.00"}, **idempotency_headers())
+        self.client.post(f"/api/wallets/{self.wallet.id}/deposits/", {"amount": "100.00"}, **idempotency_headers())
+
+        self.wallet.refresh_from_db()
+        self.assertEqual(self.wallet.balance, Decimal("200.00"))
+
+    def test_a_failed_attempt_releases_the_key_for_a_retry(self):
+        key = str(uuid.uuid4())
+
+        failed = self.client.post(
+            f"/api/wallets/{self.wallet.id}/deposits/", {"amount": "999999999"}, headers={"Idempotency-Key": key},
+        )
+        self.assertEqual(failed.status_code, status.HTTP_400_BAD_REQUEST)
+
+        retried = self.client.post(
+            f"/api/wallets/{self.wallet.id}/deposits/", {"amount": "50.00"}, headers={"Idempotency-Key": key},
+        )
+        self.assertEqual(retried.status_code, status.HTTP_201_CREATED)
+
+        self.wallet.refresh_from_db()
+        self.assertEqual(self.wallet.balance, Decimal("50.00"))
+
+    def test_a_key_still_in_flight_returns_409(self):
+        from .models import IdempotencyKey
+
+        key = str(uuid.uuid4())
+        path = f"/api/wallets/{self.wallet.id}/deposits/"
+        # Simulates a genuine concurrent duplicate: the key is claimed but no response is
+        # recorded yet, as if another request with the same key were still being processed.
+        IdempotencyKey.objects.create(user=self.agent, key=key, path=path)
+
+        response = self.client.post(path, {"amount": "100.00"}, headers={"Idempotency-Key": key})
+
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.wallet.refresh_from_db()
+        self.assertEqual(self.wallet.balance, Decimal("0"))

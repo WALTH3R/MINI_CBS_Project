@@ -113,6 +113,13 @@ MIDDLEWARE = [
 # (localhost:8000) — browsers block that cross-origin call unless explicitly allowed.
 CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=["http://localhost:4200"])
 
+# Cross-origin requests carrying a non-default header (like Idempotency-Key) trigger a CORS
+# preflight — without explicitly allowing it here, the browser blocks the request before it
+# ever reaches Django, even though a same-origin tool like curl wouldn't show any problem.
+from corsheaders.defaults import default_headers
+
+CORS_ALLOW_HEADERS = list(default_headers) + ["idempotency-key"]
+
 ROOT_URLCONF = "cbs.urls"
 
 TEMPLATES = [

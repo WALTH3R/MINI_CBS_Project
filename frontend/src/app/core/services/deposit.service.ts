@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
@@ -13,8 +13,12 @@ const BASE = `${environment.apiBaseUrl}/api/wallets`;
 export class DepositService {
   private readonly http = inject(HttpClient);
 
+  // A fresh key per call is correct: the form disables its submit button while a request is in
+  // flight, so create() is never re-entered for the same attempt. A retry the auth interceptor
+  // triggers (401 -> refresh -> retry) replays the same cloned request, header included.
   create(walletId: string, amount: string): Observable<Deposit> {
-    return this.http.post<Deposit>(`${BASE}/${walletId}/deposits/`, { amount });
+    const headers = new HttpHeaders({ 'Idempotency-Key': crypto.randomUUID() });
+    return this.http.post<Deposit>(`${BASE}/${walletId}/deposits/`, { amount }, { headers });
   }
 
   list(walletId: string, filters: TransactionFilters = {}): Observable<PaginatedResponse<Deposit>> {

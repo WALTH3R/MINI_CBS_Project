@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
@@ -14,7 +14,8 @@ export class PaymentService {
   private readonly http = inject(HttpClient);
 
   create(walletId: string, merchantTag: string, amount: string): Observable<Payment> {
-    return this.http.post<Payment>(`${BASE}/${walletId}/payments/`, { merchant_tag: merchantTag, amount });
+    const headers = new HttpHeaders({ 'Idempotency-Key': crypto.randomUUID() });
+    return this.http.post<Payment>(`${BASE}/${walletId}/payments/`, { merchant_tag: merchantTag, amount }, { headers });
   }
 
   list(walletId: string, filters: TransactionFilters = {}): Observable<PaginatedResponse<Payment>> {

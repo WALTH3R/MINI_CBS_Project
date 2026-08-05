@@ -22,6 +22,24 @@ class Wallet(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
 
+class IdempotencyKey(models.Model):
+    """Lets a client safely retry a POST it's unsure landed (e.g. after a network timeout)
+    without the mutation executing twice — see wallets/idempotency.py."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey("accounts.User", on_delete=models.CASCADE, related_name="idempotency_keys")
+    key = models.CharField(max_length=255)
+    path = models.CharField(max_length=255)
+    response_status = models.PositiveSmallIntegerField(null=True, blank=True)
+    response_body = models.JSONField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["user", "key", "path"], name="unique_idempotency_key_per_user_path"),
+        ]
+
+
 class WalletCreationRequest(models.Model):
     
     class Status(models.TextChoices):

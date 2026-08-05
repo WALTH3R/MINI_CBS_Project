@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
@@ -14,7 +14,8 @@ export class TransferService {
   private readonly http = inject(HttpClient);
 
   create(walletId: string, toTag: string, amount: string): Observable<Transfer> {
-    return this.http.post<Transfer>(`${BASE}/${walletId}/transfers/`, { to_tag: toTag, amount });
+    const headers = new HttpHeaders({ 'Idempotency-Key': crypto.randomUUID() });
+    return this.http.post<Transfer>(`${BASE}/${walletId}/transfers/`, { to_tag: toTag, amount }, { headers });
   }
 
   list(walletId: string, filters: TransactionFilters = {}): Observable<PaginatedResponse<Transfer>> {

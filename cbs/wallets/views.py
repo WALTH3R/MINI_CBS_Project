@@ -10,6 +10,7 @@ from rest_framework.views import APIView
 from accounts.models import Role
 from cbs.pagination import StandardResultsPagination
 from cbs.utils import ValidatedUUIDLookupMixin, get_object_or_400, parse_uuid
+from .idempotency import idempotent_create
 from .models import Wallet, WalletCreationRequest, WalletProfile
 from .permissions import IsAgent, IsClient
 from .services import generate_unique_tag, resolve_wallet_by_tag
@@ -200,6 +201,9 @@ class WalletDepositListCreateView(WalletScopedMixin, ListCreateAPIView):
         ordering = "created_at" if self.request.query_params.get("ordering") == "created_at" else "-created_at"
         return qs.order_by(ordering)
 
+    def create(self, request, *args, **kwargs):
+        return idempotent_create(request, lambda: super(WalletDepositListCreateView, self).create(request, *args, **kwargs))
+
 
 class WalletTransferListCreateView(WalletScopedMixin, ListCreateAPIView):
     pagination_class = StandardResultsPagination
@@ -232,7 +236,7 @@ class WalletTransferListCreateView(WalletScopedMixin, ListCreateAPIView):
 
     def create(self, request, *args, **kwargs):
         self.require_owner_or_agent(self.get_wallet(), "You do not have access to this wallet's transfers.")
-        return super().create(request, *args, **kwargs)
+        return idempotent_create(request, lambda: super(WalletTransferListCreateView, self).create(request, *args, **kwargs))
 
 
 class WalletPaymentListCreateView(WalletScopedMixin, ListCreateAPIView):
@@ -258,4 +262,4 @@ class WalletPaymentListCreateView(WalletScopedMixin, ListCreateAPIView):
 
     def create(self, request, *args, **kwargs):
         self.require_owner_or_agent(self.get_wallet(), "You do not have access to this wallet's payments.")
-        return super().create(request, *args, **kwargs)
+        return idempotent_create(request, lambda: super(WalletPaymentListCreateView, self).create(request, *args, **kwargs))
