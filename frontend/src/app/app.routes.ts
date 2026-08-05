@@ -50,6 +50,10 @@ export const routes: Routes = [
         path: 'customers',
         loadComponent: () => import('./features/customers/customers').then((m) => m.Customers),
       },
+      {
+        path: 'audit-log',
+        loadComponent: () => import('./features/audit-log/audit-log').then((m) => m.AuditLog),
+      },
     ],
   },
   { path: '**', redirectTo: 'login' },

@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     "accounts",
     "wallets",
     "merchants",
+    "audit",
     "rest_framework",
     "corsheaders",
 ]
@@ -100,6 +101,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "audit.middleware.AuditLogMiddleware",
 ]
 
 # The Angular dev server runs on a different origin (localhost:4200) than the API
