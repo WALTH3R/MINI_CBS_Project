@@ -75,6 +75,9 @@ REST_FRAMEWORK = {
     # as the last entry in X-Forwarded-For. Without this, DRF trusts the client-supplied header
     # verbatim (num_proxies=None), letting a client spoof a fake leading IP to dodge throttling.
     'NUM_PROXIES': 1,
+    # Wraps DRF's default handler purely to log genuine unhandled exceptions (see
+    # audit/exceptions.py) — doesn't change any existing error response.
+    'EXCEPTION_HANDLER': 'audit.exceptions.error_monitoring_exception_handler',
 }
 
 # For JWT token lifetime settings

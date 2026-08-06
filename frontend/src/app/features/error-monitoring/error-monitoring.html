@@ -1,0 +1,109 @@
+<header class="mb-8">
+  <h1 class="text-headline-md text-on-surface">Error Monitoring</h1>
+  <p class="mt-1 text-body-md text-on-surface-variant">Unhandled server errors only — validation and permission failures are normal application flow and live in the Audit Log instead.</p>
+</header>
+
+<div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+  <div class="rounded-xl bg-surface-container-lowest p-card-padding card-shadow">
+    <p class="text-label-md text-on-surface-variant">Errors matching current filters</p>
+    <p class="mt-1 text-headline-md" [class.text-error]="totalCount() > 0" [class.text-on-surface]="totalCount() === 0">{{ totalCount() }}</p>
+  </div>
+  <div class="rounded-xl bg-surface-container-lowest p-card-padding card-shadow">
+    <p class="text-label-md text-on-surface-variant">Most recent</p>
+    <p class="mt-1 text-headline-md text-on-surface">
+      @if (entries().length > 0) {
+        {{ entries()[0].created_at | date:'d MMM y, HH:mm:ss' }}
+      } @else {
+        —
+      }
+    </p>
+  </div>
+</div>
+
+<div class="rounded-xl bg-surface-container-lowest p-card-padding card-shadow">
+  <div class="mb-4 flex flex-wrap items-end gap-3">
+    <div>
+      <label class="mb-1.5 block text-label-md text-on-surface-variant">Exception type</label>
+      <input
+        type="text"
+        [value]="exceptionTypeFilter()"
+        (input)="exceptionTypeFilter.set($any($event.target).value)"
+        placeholder="e.g. RuntimeError"
+        class="rounded-lg border-none bg-surface-container-low px-3 py-2 text-body-md focus:outline-none focus:ring-2 focus:ring-primary/30"
+      />
+    </div>
+    <div>
+      <label class="mb-1.5 block text-label-md text-on-surface-variant">From</label>
+      <input type="date" [value]="dateFrom()" (input)="dateFrom.set($any($event.target).value)" class="rounded-lg border-none bg-surface-container-low px-3 py-2 text-body-md focus:outline-none focus:ring-2 focus:ring-primary/30" />
+    </div>
+    <div>
+      <label class="mb-1.5 block text-label-md text-on-surface-variant">To</label>
+      <input type="date" [value]="dateTo()" (input)="dateTo.set($any($event.target).value)" class="rounded-lg border-none bg-surface-container-low px-3 py-2 text-body-md focus:outline-none focus:ring-2 focus:ring-primary/30" />
+    </div>
+    <div class="min-w-[200px] flex-1">
+      <label class="mb-1.5 block text-label-md text-on-surface-variant">Search (path or message)</label>
+      <input
+        type="text"
+        [value]="search()"
+        (input)="search.set($any($event.target).value)"
+        placeholder="e.g. /api/wallets/…, duplicate key"
+        class="w-full rounded-lg border-none bg-surface-container-low px-3 py-2 text-body-md focus:outline-none focus:ring-2 focus:ring-primary/30"
+      />
+    </div>
+    <button (click)="applyFilters()" class="rounded-lg bg-primary px-5 py-2 text-body-md font-bold text-white">Apply</button>
+  </div>
+
+  @if (error()) {
+    <p class="text-body-md text-error">{{ error() }}</p>
+  }
+
+  <div class="overflow-x-auto">
+    <table class="w-full text-left">
+      <thead>
+        <tr class="border-b border-outline-variant text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">
+          <th class="pb-3">Time</th>
+          <th class="pb-3">User</th>
+          <th class="pb-3">Method</th>
+          <th class="pb-3">Path</th>
+          <th class="pb-3">Exception</th>
+          <th class="pb-3">Message</th>
+          <th class="pb-3"></th>
+        </tr>
+      </thead>
+      <tbody class="text-body-md">
+        @for (entry of entries(); track entry.id) {
+          <tr class="border-b border-surface-container-low">
+            <td class="py-4 font-tabular-nums">{{ entry.created_at | date:'d MMM y, HH:mm:ss' }}</td>
+            <td class="py-4 text-on-surface-variant">{{ entry.username || 'anonymous' }}</td>
+            <td class="py-4 text-on-surface-variant">{{ entry.method }}</td>
+            <td class="py-4 max-w-xs truncate text-on-surface-variant" [title]="entry.path">{{ entry.path }}</td>
+            <td class="py-4 font-bold text-error">{{ entry.exception_type }}</td>
+            <td class="py-4 max-w-xs truncate text-on-surface-variant" [title]="entry.message">{{ entry.message || '—' }}</td>
+            <td class="py-4 text-right">
+              <button (click)="toggleTraceback(entry)" class="text-label-md font-bold text-primary hover:underline">
+                {{ expandedId() === entry.id ? 'Hide' : 'View' }} traceback
+              </button>
+            </td>
+          </tr>
+          @if (expandedId() === entry.id) {
+            <tr class="border-b border-surface-container-low">
+              <td colspan="7" class="bg-surface-container-low py-3">
+                <pre class="max-h-96 overflow-auto whitespace-pre-wrap px-4 text-label-md text-on-surface-variant">{{ entry.traceback || 'No traceback captured.' }}</pre>
+              </td>
+            </tr>
+          }
+        } @empty {
+          <tr><td colspan="7" class="py-8 text-center text-on-surface-variant">{{ loading() ? 'Loading…' : 'No errors found — good sign.' }}</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  @if (nextPageUrl()) {
+    <button
+      (click)="loadMore()"
+      [disabled]="loadingMore()"
+      class="mt-4 w-full rounded-lg py-2.5 text-label-md font-bold text-primary hover:bg-surface-container-low disabled:opacity-60"
+    >{{ loadingMore() ? 'Loading…' : 'Load more' }}</button>
+  }
+</div>

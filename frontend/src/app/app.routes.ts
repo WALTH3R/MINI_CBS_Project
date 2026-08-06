@@ -58,6 +58,10 @@ export const routes: Routes = [
         path: 'system-health',
         loadComponent: () => import('./features/system-health/system-health').then((m) => m.SystemHealth),
       },
+      {
+        path: 'error-monitoring',
+        loadComponent: () => import('./features/error-monitoring/error-monitoring').then((m) => m.ErrorMonitoring),
+      },
     ],
   },
   { path: '**', redirectTo: 'login' },
