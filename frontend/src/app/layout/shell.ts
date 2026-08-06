@@ -19,6 +19,8 @@ export class Shell {
   private readonly router = inject(Router);
 
   protected readonly switcherOpen = signal(false);
+  protected readonly adminMenuOpen = signal(false);
+  protected readonly monitoringMenuOpen = signal(false);
 
   protected readonly roleLabel = () => {
     const user = this.auth.currentUser();
@@ -35,6 +37,21 @@ export class Shell {
 
   toggleSwitcher(): void {
     this.switcherOpen.update((open) => !open);
+  }
+
+  toggleAdminMenu(): void {
+    this.monitoringMenuOpen.set(false);
+    this.adminMenuOpen.update((open) => !open);
+  }
+
+  toggleMonitoringMenu(): void {
+    this.adminMenuOpen.set(false);
+    this.monitoringMenuOpen.update((open) => !open);
+  }
+
+  closeMenus(): void {
+    this.adminMenuOpen.set(false);
+    this.monitoringMenuOpen.set(false);
   }
 
   pickWallet(id: string): void {

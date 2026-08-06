@@ -52,41 +52,45 @@
             routerLinkActive="!text-primary !font-bold border-b-2 border-primary pb-1"
             class="pb-1 transition-colors hover:text-primary"
           >Transactions</a>
-          <a
-            routerLink="/agents"
-            routerLinkActive="!text-primary !font-bold border-b-2 border-primary pb-1"
-            class="pb-1 transition-colors hover:text-primary"
-          >Agents</a>
-          <a
-            routerLink="/merchants"
-            routerLinkActive="!text-primary !font-bold border-b-2 border-primary pb-1"
-            class="pb-1 transition-colors hover:text-primary"
-          >Merchants</a>
-          <a
-            routerLink="/wallet-profiles"
-            routerLinkActive="!text-primary !font-bold border-b-2 border-primary pb-1"
-            class="pb-1 transition-colors hover:text-primary"
-          >Wallet profiles</a>
-          <a
-            routerLink="/customers"
-            routerLinkActive="!text-primary !font-bold border-b-2 border-primary pb-1"
-            class="pb-1 transition-colors hover:text-primary"
-          >Customers</a>
-          <a
-            routerLink="/audit-log"
-            routerLinkActive="!text-primary !font-bold border-b-2 border-primary pb-1"
-            class="pb-1 transition-colors hover:text-primary"
-          >Audit Log</a>
-          <a
-            routerLink="/system-health"
-            routerLinkActive="!text-primary !font-bold border-b-2 border-primary pb-1"
-            class="pb-1 transition-colors hover:text-primary"
-          >System Health</a>
-          <a
-            routerLink="/error-monitoring"
-            routerLinkActive="!text-primary !font-bold border-b-2 border-primary pb-1"
-            class="pb-1 transition-colors hover:text-primary"
-          >Error Monitoring</a>
+
+          <div class="relative" routerLinkActive="!text-primary !font-bold" [routerLinkActiveOptions]="{ exact: false }">
+            <button
+              (click)="toggleAdminMenu()"
+              class="flex items-center gap-1 pb-1 transition-colors hover:text-primary"
+            >
+              Admin
+              <span class="material-symbols-outlined text-lg">expand_more</span>
+            </button>
+
+            <div
+              class="absolute left-0 top-full z-10 mt-2 w-48 rounded-xl bg-surface-container-lowest py-2 card-shadow"
+              [class.hidden]="!adminMenuOpen()"
+            >
+              <a routerLink="/agents" (click)="closeMenus()" routerLinkActive="text-primary font-bold" class="block px-4 py-2.5 text-body-md text-on-surface transition-colors hover:bg-surface-container-low">Agents</a>
+              <a routerLink="/merchants" (click)="closeMenus()" routerLinkActive="text-primary font-bold" class="block px-4 py-2.5 text-body-md text-on-surface transition-colors hover:bg-surface-container-low">Merchants</a>
+              <a routerLink="/wallet-profiles" (click)="closeMenus()" routerLinkActive="text-primary font-bold" class="block px-4 py-2.5 text-body-md text-on-surface transition-colors hover:bg-surface-container-low">Wallet profiles</a>
+              <a routerLink="/customers" (click)="closeMenus()" routerLinkActive="text-primary font-bold" class="block px-4 py-2.5 text-body-md text-on-surface transition-colors hover:bg-surface-container-low">Customers</a>
+            </div>
+          </div>
+
+          <div class="relative" routerLinkActive="!text-primary !font-bold" [routerLinkActiveOptions]="{ exact: false }">
+            <button
+              (click)="toggleMonitoringMenu()"
+              class="flex items-center gap-1 pb-1 transition-colors hover:text-primary"
+            >
+              Monitoring
+              <span class="material-symbols-outlined text-lg">expand_more</span>
+            </button>
+
+            <div
+              class="absolute left-0 top-full z-10 mt-2 w-48 rounded-xl bg-surface-container-lowest py-2 card-shadow"
+              [class.hidden]="!monitoringMenuOpen()"
+            >
+              <a routerLink="/audit-log" (click)="closeMenus()" routerLinkActive="text-primary font-bold" class="block px-4 py-2.5 text-body-md text-on-surface transition-colors hover:bg-surface-container-low">Audit Log</a>
+              <a routerLink="/system-health" (click)="closeMenus()" routerLinkActive="text-primary font-bold" class="block px-4 py-2.5 text-body-md text-on-surface transition-colors hover:bg-surface-container-low">System Health</a>
+              <a routerLink="/error-monitoring" (click)="closeMenus()" routerLinkActive="text-primary font-bold" class="block px-4 py-2.5 text-body-md text-on-surface transition-colors hover:bg-surface-container-low">Error Monitoring</a>
+            </div>
+          </div>
         }
       </div>
     </div>
