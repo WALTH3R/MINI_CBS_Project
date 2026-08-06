@@ -1,9 +1,17 @@
+import threading
 import uuid
 from decimal import Decimal
 
+from django.db import connections
+from django.test import TransactionTestCase
 from rest_framework import status
+from rest_framework.exceptions import ValidationError
 
+from accounts.models import Role, User
 from cbs.test_base import BaseAPITestCase
+from merchants.models import Transaction
+from wallets.models import Wallet, WalletProfile
+from wallets.services import do_deposit, do_transfer
 
 
 def idempotency_headers():
@@ -599,3 +607,93 @@ class IdempotencyTests(BaseAPITestCase):
         self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
         self.wallet.refresh_from_db()
         self.assertEqual(self.wallet.balance, Decimal("0"))
+
+
+class WalletConcurrencyTests(TransactionTestCase):
+    """Proves the select_for_update() locking in wallets/services.py actually serializes
+    concurrent operations on the same wallet, rather than just reading correctly by inspection.
+
+    Needs real, separately-committed transactions across real threads/connections to exercise
+    row locking at all — the ordinary BaseAPITestCase (built on APITestCase -> TestCase) wraps
+    every test in one outer transaction that's rolled back, so nothing is ever actually committed
+    for a second connection to block on. TransactionTestCase is the one that doesn't do that.
+    """
+
+    def setUp(self):
+        self.agent = User.objects.create_user(username="conc_agent", password="pass12345", role=Role.AGENT)
+        self.profile = WalletProfile.objects.create(
+            name="Standard", currency="EUR",
+            max_balance=Decimal("1000000"), max_transfer_amount=Decimal("500000"),
+            max_daily_transfer_total=Decimal("1000000"), max_deposit_amount=Decimal("500000"),
+        )
+
+    def _make_customer(self, username):
+        user = User.objects.create_user(username=username, password="pass12345", role=Role.CLIENT)
+        wallet = Wallet.objects.create(client=user, profile=self.profile, tag=f"{username}.tag")
+        return user, wallet
+
+    def test_concurrent_deposits_do_not_lose_an_update(self):
+        _, wallet = self._make_customer("conc_dep_owner")
+        thread_count = 10
+        errors = []
+
+        def deposit():
+            try:
+                fresh_wallet = Wallet.objects.get(pk=wallet.pk)
+                do_deposit(fresh_wallet, Decimal("10.00"), self.agent)
+            except Exception as exc:  # noqa: BLE001 — recorded, not raised, so all threads still join
+                errors.append(exc)
+            finally:
+                connections.close_all()
+
+        threads = [threading.Thread(target=deposit) for _ in range(thread_count)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        self.assertEqual(errors, [])
+        wallet.refresh_from_db()
+        # Without select_for_update() this reliably comes out lower than 100.00 — concurrent
+        # threads read the same stale balance and overwrite each other's increment.
+        self.assertEqual(wallet.balance, Decimal("100.00"))
+        self.assertEqual(Transaction.objects.filter(to_wallet=wallet, type="DEPOSIT").count(), thread_count)
+
+    def test_concurrent_transfers_cannot_overdraw_the_source_wallet(self):
+        sender_user, sender_wallet = self._make_customer("conc_trf_sender")
+        _, recipient_wallet = self._make_customer("conc_trf_recipient")
+        do_deposit(Wallet.objects.get(pk=sender_wallet.pk), Decimal("100.00"), self.agent)
+
+        thread_count = 5  # 5 x 60.00 against a 100.00 balance — at most one can legally succeed
+        outcomes = []
+        lock = threading.Lock()
+
+        def transfer():
+            try:
+                fresh_sender = Wallet.objects.get(pk=sender_wallet.pk)
+                fresh_recipient = Wallet.objects.get(pk=recipient_wallet.pk)
+                do_transfer(fresh_sender, fresh_recipient, Decimal("60.00"), sender_user)
+                with lock:
+                    outcomes.append("success")
+            except ValidationError:
+                with lock:
+                    outcomes.append("rejected")
+            finally:
+                connections.close_all()
+
+        threads = [threading.Thread(target=transfer) for _ in range(thread_count)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        # Without select_for_update(), two threads could both read balance=100.00, both pass the
+        # "amount <= balance" check, and both deduct — overdrawing the wallet to -20.00.
+        self.assertEqual(outcomes.count("success"), 1)
+        self.assertEqual(outcomes.count("rejected"), thread_count - 1)
+
+        sender_wallet.refresh_from_db()
+        recipient_wallet.refresh_from_db()
+        self.assertEqual(sender_wallet.balance, Decimal("40.00"))
+        self.assertEqual(recipient_wallet.balance, Decimal("60.00"))
+        self.assertGreaterEqual(sender_wallet.balance, Decimal("0"))

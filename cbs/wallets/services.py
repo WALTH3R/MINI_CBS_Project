@@ -11,26 +11,44 @@ from django.utils import timezone
 from .models import Wallet
 from merchants.models import Merchant, Transaction
 
-def do_transfer(from_wallet, to_wallet, amount: Decimal, performed_by):
-    profile = from_wallet.profile
+def _lock_wallets(*wallets):
+    """Row-locks the given wallets for the rest of the current atomic block, always in a fixed
+    order (by id) regardless of the order they're passed in — otherwise two concurrent operations
+    on the same pair of wallets could lock them in opposite order and deadlock. Must be called
+    inside db_transaction.atomic(). Returns fresh, locked instances (never the stale ones passed
+    in) so every balance-dependent check that follows sees the true current balance."""
+    by_id = {
+        w.id: w for w in
+        Wallet.objects.select_for_update().select_related("profile").filter(
+            id__in=sorted(w.id for w in wallets)
+        )
+    }
+    return [by_id[w.id] for w in wallets]
 
+
+def do_transfer(from_wallet, to_wallet, amount: Decimal, performed_by):
     if from_wallet.profile.currency != to_wallet.profile.currency:
         raise ValidationError("Cannot transfer between wallets with different currencies.")
-    if amount > profile.max_transfer_amount:
-        raise ValidationError("Amount exceeds this wallet's max transfer limit.")
-    if from_wallet.balance < amount:
-        raise ValidationError("Insufficient balance.")
-    if to_wallet.balance + amount > to_wallet.profile.max_balance:
-        raise ValidationError("Destination wallet would exceed its max balance.")
-
-    
-    today_total = Transaction.objects.filter(
-        from_wallet=from_wallet, type="TRANSFER", created_at__date=timezone.now().date()
-    ).aggregate(total=models.Sum("amount"))["total"] or Decimal("0")
-    if today_total + amount > profile.max_daily_transfer_total:
-        raise ValidationError("Daily transfer limit exceeded.")
 
     with db_transaction.atomic():
+        from_wallet, to_wallet = _lock_wallets(from_wallet, to_wallet)
+        profile = from_wallet.profile
+
+        if amount > profile.max_transfer_amount:
+            raise ValidationError("Amount exceeds this wallet's max transfer limit.")
+        if from_wallet.balance < amount:
+            raise ValidationError("Insufficient balance.")
+        if to_wallet.balance + amount > to_wallet.profile.max_balance:
+            raise ValidationError("Destination wallet would exceed its max balance.")
+
+        # Locking from_wallet above also serializes this: a concurrent transfer from the same
+        # wallet can't run until this one commits, so this total is never computed from stale data.
+        today_total = Transaction.objects.filter(
+            from_wallet=from_wallet, type="TRANSFER", created_at__date=timezone.now().date()
+        ).aggregate(total=models.Sum("amount"))["total"] or Decimal("0")
+        if today_total + amount > profile.max_daily_transfer_total:
+            raise ValidationError("Daily transfer limit exceeded.")
+
         from_wallet.balance -= amount
         to_wallet.balance += amount
         from_wallet.save()
@@ -42,13 +60,15 @@ def do_transfer(from_wallet, to_wallet, amount: Decimal, performed_by):
         )
 
 def do_deposit(to_wallet, amount: Decimal, performed_by):
-    profile = to_wallet.profile
-    if amount > profile.max_deposit_amount:
-        raise ValidationError("Amount exceeds max deposit limit.")
-    if to_wallet.balance + amount > profile.max_balance:
-        raise ValidationError("Wallet would exceed max balance.")
-
     with db_transaction.atomic():
+        (to_wallet,) = _lock_wallets(to_wallet)
+        profile = to_wallet.profile
+
+        if amount > profile.max_deposit_amount:
+            raise ValidationError("Amount exceeds max deposit limit.")
+        if to_wallet.balance + amount > profile.max_balance:
+            raise ValidationError("Wallet would exceed max balance.")
+
         to_wallet.balance += amount
         to_wallet.save()
         return Transaction.objects.create(
@@ -59,7 +79,6 @@ def do_deposit(to_wallet, amount: Decimal, performed_by):
 
 
 def do_pay_merchant(from_wallet, merchant, amount: Decimal, performed_by):
-    profile = from_wallet.profile
     to_wallet = merchant.wallet
     reference = generate_transaction_reference("PAYMENT")
 
@@ -72,14 +91,18 @@ def do_pay_merchant(from_wallet, merchant, amount: Decimal, performed_by):
 
     if not merchant.is_active:
         return declined("This merchant account is not active.")
-    if amount > profile.max_transfer_amount:
-        return declined("Amount exceeds this wallet's max transfer limit.")
-    if from_wallet.balance < amount:
-        return declined("Insufficient balance.")
-    if to_wallet.balance + amount > to_wallet.profile.max_balance:
-        return declined("Merchant wallet would exceed its max balance.")
 
     with db_transaction.atomic():
+        from_wallet, to_wallet = _lock_wallets(from_wallet, to_wallet)
+        profile = from_wallet.profile
+
+        if amount > profile.max_transfer_amount:
+            return declined("Amount exceeds this wallet's max transfer limit.")
+        if from_wallet.balance < amount:
+            return declined("Insufficient balance.")
+        if to_wallet.balance + amount > to_wallet.profile.max_balance:
+            return declined("Merchant wallet would exceed its max balance.")
+
         from_wallet.balance -= amount
         to_wallet.balance += amount
         from_wallet.save()
