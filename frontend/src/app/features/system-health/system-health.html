@@ -1,0 +1,95 @@
+<header class="mb-8 flex flex-wrap items-end justify-between gap-4">
+  <div>
+    <h1 class="text-headline-md text-on-surface">System Health</h1>
+    <p class="mt-1 text-body-md text-on-surface-variant">Live status of the database, recent request activity, and operational backlog.</p>
+  </div>
+  <div class="flex items-center gap-3">
+    @if (lastCheckedAt(); as checked) {
+      <p class="text-label-md text-on-surface-variant">Last checked {{ checked | date:'HH:mm:ss' }}</p>
+    }
+    <button
+      (click)="refresh()"
+      [disabled]="loading()"
+      class="flex items-center gap-1.5 rounded-lg bg-surface-container-lowest px-4 py-2 text-label-md font-bold text-primary card-shadow disabled:opacity-60"
+    >
+      <span class="material-symbols-outlined text-lg" [class.animate-spin]="loading()">refresh</span>
+      Refresh
+    </button>
+  </div>
+</header>
+
+@if (error()) {
+  <div class="mb-6 flex items-start gap-2 rounded-lg border border-error/20 bg-error-container px-4 py-3">
+    <span class="material-symbols-outlined text-on-error-container">error</span>
+    <p class="text-body-md text-on-error-container">{{ error() }}</p>
+  </div>
+}
+
+@if (health(); as h) {
+  <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div class="rounded-xl bg-surface-container-lowest p-card-padding card-shadow">
+      <p class="text-label-md text-on-surface-variant">Database</p>
+      <div class="mt-1 flex items-center gap-2">
+        <app-status-badge [status]="h.database.status === 'ok' ? 'ACTIVE' : 'INACTIVE'" />
+        @if (h.database.latency_ms !== null) {
+          <span class="text-label-md text-on-surface-variant">{{ h.database.latency_ms }} ms</span>
+        }
+      </div>
+    </div>
+    <div class="rounded-xl bg-surface-container-lowest p-card-padding card-shadow">
+      <p class="text-label-md text-on-surface-variant">Active agents</p>
+      <p class="mt-1 text-headline-md text-on-surface">{{ h.business.active_agents }}</p>
+    </div>
+    <div class="rounded-xl bg-surface-container-lowest p-card-padding card-shadow">
+      <p class="text-label-md text-on-surface-variant">Active customers</p>
+      <p class="mt-1 text-headline-md text-on-surface">{{ h.business.active_customers }}</p>
+    </div>
+    <div class="rounded-xl bg-surface-container-lowest p-card-padding card-shadow">
+      <p class="text-label-md text-on-surface-variant">Total wallets</p>
+      <p class="mt-1 text-headline-md text-on-surface">{{ h.business.total_wallets }}</p>
+    </div>
+    <div class="rounded-xl bg-surface-container-lowest p-card-padding card-shadow">
+      <p class="text-label-md text-on-surface-variant">Pending wallet requests</p>
+      <p class="mt-1 text-headline-md text-on-surface">{{ h.business.pending_wallet_requests }}</p>
+    </div>
+    <div class="rounded-xl bg-surface-container-lowest p-card-padding card-shadow">
+      <p class="text-label-md text-on-surface-variant">Failed transactions (24h)</p>
+      <p class="mt-1 text-headline-md" [class.text-error]="h.business.failed_transactions_last_24h > 0" [class.text-on-surface]="h.business.failed_transactions_last_24h === 0">
+        {{ h.business.failed_transactions_last_24h }}
+      </p>
+    </div>
+    <div class="rounded-xl bg-surface-container-lowest p-card-padding card-shadow">
+      <p class="text-label-md text-on-surface-variant">Requests (last hour)</p>
+      <p class="mt-1 text-headline-md text-on-surface">{{ h.activity_last_hour.total_requests }}</p>
+    </div>
+    <div class="rounded-xl bg-surface-container-lowest p-card-padding card-shadow">
+      <p class="text-label-md text-on-surface-variant">Error rate (last hour)</p>
+      <p class="mt-1 text-headline-md" [class.text-error]="h.activity_last_hour.error_rate_percent > 0" [class.text-on-surface]="h.activity_last_hour.error_rate_percent === 0">
+        {{ h.activity_last_hour.error_rate_percent }}%
+      </p>
+      <p class="text-label-md text-on-surface-variant">{{ h.activity_last_hour.error_requests }} of {{ h.activity_last_hour.total_requests }} requests</p>
+    </div>
+  </div>
+
+  <div class="rounded-xl bg-surface-container-lowest p-card-padding card-shadow">
+    <h3 class="mb-4 text-headline-sm text-on-surface">Environment</h3>
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-3 text-label-md">
+      <div>
+        <p class="text-on-surface-variant">Django version</p>
+        <p class="mt-1 font-semibold text-on-surface">{{ h.environment.django_version }}</p>
+      </div>
+      <div>
+        <p class="text-on-surface-variant">Database engine</p>
+        <p class="mt-1 font-semibold text-on-surface">{{ h.environment.database_engine }}</p>
+      </div>
+      <div>
+        <p class="text-on-surface-variant">Debug mode</p>
+        <p class="mt-1 font-semibold" [class.text-error]="h.environment.debug" [class.text-on-surface]="!h.environment.debug">
+          {{ h.environment.debug ? 'ON — should be off in production' : 'Off' }}
+        </p>
+      </div>
+    </div>
+  </div>
+} @else if (loading()) {
+  <p class="text-body-md text-on-surface-variant">Loading…</p>
+}
