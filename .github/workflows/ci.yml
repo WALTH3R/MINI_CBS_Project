@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cbs
+    # Real Postgres, not sqlite: a concurrency test (wallets.tests.WalletConcurrencyTests) relies
+    # on select_for_update() row locking under real concurrent threads, which sqlite doesn't
+    # support the same way — it just raises "database is locked" instead of queueing, so that
+    # test fails against sqlite even though nothing is actually broken. This mirrors the local
+    # dev Postgres container in docker-compose.yml.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: mini_cbs
+          POSTGRES_USER: minicbs
+          POSTGRES_PASSWORD: minicbs_dev_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U minicbs -d mini_cbs"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      SECRET_KEY: dummy-secret-key-for-ci
+      DB_ENGINE: django.db.backends.postgresql
+      DB_NAME: mini_cbs
+      DB_USER: minicbs
+      DB_PASSWORD: minicbs_dev_password
+      DB_HOST: localhost
+      DB_PORT: 5432
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r ../requirements.txt
+
+      - name: Run migrations check
+        run: python manage.py makemigrations --check --dry-run
+
+      - name: Run tests
+        run: python manage.py test
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit tests
+        run: npx ng test --watch=false
+
+      - name: Build
+        run: npx ng build
