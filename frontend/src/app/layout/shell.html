@@ -149,9 +149,49 @@
           <span class="material-symbols-outlined text-lg">logout</span>
           <span class="hidden sm:inline">Sign out</span>
         </button>
+        <button
+          (click)="toggleMobileMenu()"
+          class="flex h-9 w-9 items-center justify-center rounded-full bg-surface-container-high text-on-surface-variant transition-colors hover:bg-surface-container-highest md:hidden"
+          [attr.aria-expanded]="mobileMenuOpen()"
+          aria-label="Toggle navigation menu"
+        >
+          <span class="material-symbols-outlined text-lg">{{ mobileMenuOpen() ? 'close' : 'menu' }}</span>
+        </button>
       </div>
     }
   </nav>
+
+  @if (mobileMenuOpen()) {
+    <div class="sticky top-20 z-40 max-h-[calc(100vh-5rem)] overflow-y-auto border-b border-outline-variant bg-surface-container-lowest px-4 py-3 text-body-md text-on-surface-variant card-shadow md:hidden">
+      <a routerLink="/dashboard" (click)="closeMenus()" routerLinkActive="!bg-primary-container !text-on-primary-container !font-bold" class="block rounded-lg px-4 py-3 transition-colors hover:bg-surface-container-low">Dashboard</a>
+
+      @if (!auth.isAdmin()) {
+        <a routerLink="/deposits" (click)="closeMenus()" routerLinkActive="!bg-primary-container !text-on-primary-container !font-bold" class="block rounded-lg px-4 py-3 transition-colors hover:bg-surface-container-low">Deposits</a>
+        <a routerLink="/transfers" (click)="closeMenus()" routerLinkActive="!bg-primary-container !text-on-primary-container !font-bold" class="block rounded-lg px-4 py-3 transition-colors hover:bg-surface-container-low">Transfers</a>
+        <a routerLink="/payments" (click)="closeMenus()" routerLinkActive="!bg-primary-container !text-on-primary-container !font-bold" class="block rounded-lg px-4 py-3 transition-colors hover:bg-surface-container-low">Payments</a>
+      }
+
+      @if (auth.isAgent()) {
+        <a routerLink="/transactions" (click)="closeMenus()" routerLinkActive="!bg-primary-container !text-on-primary-container !font-bold" class="block rounded-lg px-4 py-3 transition-colors hover:bg-surface-container-low">Transactions</a>
+        <a routerLink="/customers" (click)="closeMenus()" routerLinkActive="!bg-primary-container !text-on-primary-container !font-bold" class="block rounded-lg px-4 py-3 transition-colors hover:bg-surface-container-low">Customers</a>
+      }
+
+      @if (auth.isAdmin()) {
+        <a routerLink="/transactions" (click)="closeMenus()" routerLinkActive="!bg-primary-container !text-on-primary-container !font-bold" class="block rounded-lg px-4 py-3 transition-colors hover:bg-surface-container-low">Transactions</a>
+
+        <p class="mt-2 px-4 text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Admin</p>
+        <a routerLink="/agents" (click)="closeMenus()" routerLinkActive="!bg-primary-container !text-on-primary-container !font-bold" class="block rounded-lg px-4 py-3 transition-colors hover:bg-surface-container-low">Agents</a>
+        <a routerLink="/merchants" (click)="closeMenus()" routerLinkActive="!bg-primary-container !text-on-primary-container !font-bold" class="block rounded-lg px-4 py-3 transition-colors hover:bg-surface-container-low">Merchants</a>
+        <a routerLink="/wallet-profiles" (click)="closeMenus()" routerLinkActive="!bg-primary-container !text-on-primary-container !font-bold" class="block rounded-lg px-4 py-3 transition-colors hover:bg-surface-container-low">Wallet profiles</a>
+        <a routerLink="/customers" (click)="closeMenus()" routerLinkActive="!bg-primary-container !text-on-primary-container !font-bold" class="block rounded-lg px-4 py-3 transition-colors hover:bg-surface-container-low">Customers</a>
+
+        <p class="mt-2 px-4 text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Monitoring</p>
+        <a routerLink="/audit-log" (click)="closeMenus()" routerLinkActive="!bg-primary-container !text-on-primary-container !font-bold" class="block rounded-lg px-4 py-3 transition-colors hover:bg-surface-container-low">Audit Log</a>
+        <a routerLink="/system-health" (click)="closeMenus()" routerLinkActive="!bg-primary-container !text-on-primary-container !font-bold" class="block rounded-lg px-4 py-3 transition-colors hover:bg-surface-container-low">System Health</a>
+        <a routerLink="/error-monitoring" (click)="closeMenus()" routerLinkActive="!bg-primary-container !text-on-primary-container !font-bold" class="block rounded-lg px-4 py-3 transition-colors hover:bg-surface-container-low">Error Monitoring</a>
+      }
+    </div>
+  }
 
   <main class="mx-auto max-w-container-max px-8 py-10">
     <router-outlet></router-outlet>

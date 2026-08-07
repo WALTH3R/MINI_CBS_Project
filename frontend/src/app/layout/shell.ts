@@ -21,6 +21,7 @@ export class Shell {
   protected readonly switcherOpen = signal(false);
   protected readonly adminMenuOpen = signal(false);
   protected readonly monitoringMenuOpen = signal(false);
+  protected readonly mobileMenuOpen = signal(false);
 
   protected readonly roleLabel = () => {
     const user = this.auth.currentUser();
@@ -49,9 +50,14 @@ export class Shell {
     this.monitoringMenuOpen.update((open) => !open);
   }
 
+  toggleMobileMenu(): void {
+    this.mobileMenuOpen.update((open) => !open);
+  }
+
   closeMenus(): void {
     this.adminMenuOpen.set(false);
     this.monitoringMenuOpen.set(false);
+    this.mobileMenuOpen.set(false);
   }
 
   pickWallet(id: string): void {
