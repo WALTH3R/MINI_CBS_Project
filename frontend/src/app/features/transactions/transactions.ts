@@ -11,6 +11,8 @@ import { CustomerStatistics, LedgerEntry, TransactionStatus, TransactionType } f
 import { CurrencyAmountPipe } from '../../shared/pipes/currency-amount.pipe';
 import { StatusBadge } from '../../shared/status-badge/status-badge';
 import { CustomerWalletPicker, CustomerWalletSelection } from '../../shared/customer-wallet-picker/customer-wallet-picker';
+import { fetchAllPages } from '../../shared/utils/fetch-all-pages.util';
+import { downloadCsv } from '../../shared/utils/csv-export.util';
 
 type Mode = 'customer' | 'agent';
 
@@ -47,6 +49,7 @@ export class Transactions {
   protected readonly stats = signal<CustomerStatistics | null>(null);
   protected readonly nextPageUrl = signal<string | null>(null);
   protected readonly loadingMore = signal(false);
+  protected readonly exporting = signal(false);
 
   protected readonly hasSelection = computed(() =>
     this.mode() === 'agent' ? !!this.selectedAgentId() : !!this.selectedCustomer(),
@@ -112,6 +115,52 @@ export class Transactions {
       error: () => {
         this.error.set('Could not load more transactions.');
         this.loadingMore.set(false);
+      },
+    });
+  }
+
+  exportCsv(): void {
+    if (this.exporting() || !this.hasSelection()) {
+      return;
+    }
+
+    const filters = {
+      type: this.typeFilter() || undefined,
+      status: this.statusFilter() || undefined,
+      date_from: this.dateFrom() || undefined,
+      date_to: this.dateTo() || undefined,
+    };
+
+    let entries$;
+    let filenamePrefix: string;
+    if (this.mode() === 'agent') {
+      entries$ = fetchAllPages(
+        this.reportingService.agentTransactions(this.selectedAgentId(), filters),
+        (url) => this.reportingService.loadMore(url),
+      );
+      filenamePrefix = 'agent-transactions';
+    } else {
+      const wallet = this.selectedWallet();
+      entries$ = fetchAllPages(
+        this.reportingService.transactions(this.selectedCustomer()!.id, { ...filters, wallet_id: wallet?.id }),
+        (url) => this.reportingService.loadMore(url),
+      );
+      filenamePrefix = 'customer-transactions';
+    }
+
+    this.exporting.set(true);
+    entries$.subscribe({
+      next: (entries) => {
+        downloadCsv(
+          `${filenamePrefix}-${new Date().toISOString().slice(0, 10)}.csv`,
+          ['Date', 'Reference', 'Type', 'From', 'To', 'Status', 'Amount'],
+          entries.map((e) => [e.created_at, e.reference, e.type, e.from_wallet, e.to_wallet, e.status, e.amount]),
+        );
+        this.exporting.set(false);
+      },
+      error: () => {
+        this.error.set('Could not export transactions.');
+        this.exporting.set(false);
       },
     });
   }

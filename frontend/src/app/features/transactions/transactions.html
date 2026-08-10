@@ -109,6 +109,14 @@
         <input type="date" [value]="dateTo()" (input)="dateTo.set($any($event.target).value)" class="rounded-lg border-none bg-surface-container-low px-3 py-2 text-body-md focus:outline-none focus:ring-2 focus:ring-primary/30" />
       </div>
       <button (click)="applyFilters()" class="rounded-lg bg-primary px-5 py-2 text-body-md font-bold text-white">Apply</button>
+      <button
+        (click)="exportCsv()"
+        [disabled]="exporting() || entries().length === 0"
+        class="flex items-center gap-1.5 rounded-lg bg-surface-container-low px-4 py-2 text-body-md font-bold text-on-surface-variant transition-colors hover:bg-surface-container-high disabled:opacity-60"
+      >
+        <span class="material-symbols-outlined text-lg">download</span>
+        {{ exporting() ? 'Exporting…' : 'Export CSV' }}
+      </button>
     </div>
 
     @if (error()) {

@@ -4,6 +4,8 @@ import { FormsModule } from '@angular/forms';
 
 import { ErrorLogService } from '../../core/services/error-log.service';
 import { ErrorLogEntry } from '../../core/models/error-log.model';
+import { fetchAllPages } from '../../shared/utils/fetch-all-pages.util';
+import { downloadCsv } from '../../shared/utils/csv-export.util';
 
 @Component({
   selector: 'app-error-monitoring',
@@ -28,6 +30,7 @@ export class ErrorMonitoring {
   protected readonly nextPageUrl = signal<string | null>(null);
   protected readonly loadingMore = signal(false);
   protected readonly expandedId = signal<string | null>(null);
+  protected readonly exporting = signal(false);
 
   constructor() {
     this.load();
@@ -56,6 +59,35 @@ export class ErrorMonitoring {
       error: () => {
         this.error.set('Could not load more entries.');
         this.loadingMore.set(false);
+      },
+    });
+  }
+
+  exportCsv(): void {
+    if (this.exporting()) {
+      return;
+    }
+
+    this.exporting.set(true);
+    const filters = {
+      exception_type: this.exceptionTypeFilter() || undefined,
+      search: this.search() || undefined,
+      date_from: this.dateFrom() || undefined,
+      date_to: this.dateTo() || undefined,
+    };
+
+    fetchAllPages(this.errorLogService.list(filters), (url) => this.errorLogService.loadMore(url)).subscribe({
+      next: (entries) => {
+        downloadCsv(
+          `error-log-${new Date().toISOString().slice(0, 10)}.csv`,
+          ['Date', 'User', 'Method', 'Path', 'Exception type', 'Message', 'Traceback'],
+          entries.map((e) => [e.created_at, e.username || 'anonymous', e.method, e.path, e.exception_type, e.message, e.traceback]),
+        );
+        this.exporting.set(false);
+      },
+      error: () => {
+        this.error.set('Could not export the error log.');
+        this.exporting.set(false);
       },
     });
   }

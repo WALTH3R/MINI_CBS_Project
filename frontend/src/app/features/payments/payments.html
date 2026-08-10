@@ -144,7 +144,17 @@
 </div>
 
 <div class="mt-6 rounded-xl bg-surface-container-lowest p-card-padding card-shadow">
-  <h3 class="mb-4 text-headline-sm text-on-surface">Payment history</h3>
+  <div class="mb-4 flex items-center justify-between">
+    <h3 class="text-headline-sm text-on-surface">Payment history</h3>
+    <button
+      (click)="exportCsv()"
+      [disabled]="exporting() || history().length === 0"
+      class="flex items-center gap-1.5 rounded-lg bg-surface-container-low px-4 py-2 text-body-md font-bold text-on-surface-variant transition-colors hover:bg-surface-container-high disabled:opacity-60"
+    >
+      <span class="material-symbols-outlined text-lg">download</span>
+      {{ exporting() ? 'Exporting…' : 'Export CSV' }}
+    </button>
+  </div>
 
   @if (historyError()) {
     <p class="text-body-md text-error">{{ historyError() }}</p>

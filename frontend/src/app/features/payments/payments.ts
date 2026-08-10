@@ -13,6 +13,8 @@ import { Payment } from '../../core/models/transaction.model';
 import { StatusBadge } from '../../shared/status-badge/status-badge';
 import { CustomerWalletPicker, CustomerWalletSelection } from '../../shared/customer-wallet-picker/customer-wallet-picker';
 import { TransientSignal } from '../../shared/utils/transient-signal';
+import { fetchAllPages } from '../../shared/utils/fetch-all-pages.util';
+import { downloadCsv } from '../../shared/utils/csv-export.util';
 
 const CATEGORY_LABELS: Record<MerchantCategory, string> = {
   UTILITIES: 'Utilities',
@@ -71,6 +73,7 @@ export class Payments {
   protected readonly historyError = signal<string | null>(null);
   protected readonly nextPageUrl = signal<string | null>(null);
   protected readonly loadingMore = signal(false);
+  protected readonly exporting = signal(false);
 
   // --- Agent: selected customer + wallet ---
   protected readonly selectedCustomer = signal<Customer | null>(null);
@@ -156,6 +159,29 @@ export class Payments {
         } else {
           this.submitErrorMsg.set('Could not process this payment. Please try again.');
         }
+      },
+    });
+  }
+
+  exportCsv(): void {
+    const wallet = this.auth.isCustomer() ? this.myWallet.activeWallet() : this.selectedWallet();
+    if (!wallet || this.exporting()) {
+      return;
+    }
+
+    this.exporting.set(true);
+    fetchAllPages(this.paymentService.list(wallet.id), (url) => this.paymentService.loadMore(url)).subscribe({
+      next: (payments) => {
+        downloadCsv(
+          `payments-${wallet.tag}-${new Date().toISOString().slice(0, 10)}.csv`,
+          ['Date', 'Reference', 'Status', 'Merchant', 'Amount', 'Failure reason'],
+          payments.map((p) => [p.created_at, p.reference, p.status, p.merchant, p.amount, p.failure_reason]),
+        );
+        this.exporting.set(false);
+      },
+      error: () => {
+        this.historyError.set('Could not export payment history.');
+        this.exporting.set(false);
       },
     });
   }

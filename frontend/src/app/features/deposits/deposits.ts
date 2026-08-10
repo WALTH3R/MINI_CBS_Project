@@ -10,6 +10,8 @@ import { Deposit } from '../../core/models/transaction.model';
 import { CurrencyAmountPipe } from '../../shared/pipes/currency-amount.pipe';
 import { CustomerWalletPicker, CustomerWalletSelection } from '../../shared/customer-wallet-picker/customer-wallet-picker';
 import { TransientSignal } from '../../shared/utils/transient-signal';
+import { fetchAllPages } from '../../shared/utils/fetch-all-pages.util';
+import { downloadCsv } from '../../shared/utils/csv-export.util';
 
 @Component({
   selector: 'app-deposits',
@@ -41,6 +43,7 @@ export class Deposits {
   protected readonly maxAmountFilter = signal('');
   protected readonly nextPageUrl = signal<string | null>(null);
   protected readonly loadingMore = signal(false);
+  protected readonly exporting = signal(false);
 
   constructor() {
     if (this.auth.isCustomer()) {
@@ -120,6 +123,34 @@ export class Deposits {
       error: () => {
         this.historyError.set('Could not load more deposits.');
         this.loadingMore.set(false);
+      },
+    });
+  }
+
+  exportCsv(): void {
+    const wallet = this.myWallet.activeWallet();
+    if (!wallet || this.exporting()) {
+      return;
+    }
+
+    this.exporting.set(true);
+    const filters = {
+      min_amount: this.minAmountFilter() || undefined,
+      max_amount: this.maxAmountFilter() || undefined,
+    };
+
+    fetchAllPages(this.depositService.list(wallet.id, filters), (url) => this.depositService.loadMore(url)).subscribe({
+      next: (deposits) => {
+        downloadCsv(
+          `deposits-${wallet.tag}-${new Date().toISOString().slice(0, 10)}.csv`,
+          ['Date', 'Reference', 'Deposited by', 'Amount', 'Currency'],
+          deposits.map((d) => [d.created_at, d.reference, d.performed_by, d.amount, d.currency]),
+        );
+        this.exporting.set(false);
+      },
+      error: () => {
+        this.historyError.set('Could not export deposit history.');
+        this.exporting.set(false);
       },
     });
   }

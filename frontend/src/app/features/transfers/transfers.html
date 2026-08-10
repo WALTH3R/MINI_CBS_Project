@@ -128,12 +128,22 @@
 }
 
 <div class="rounded-xl bg-surface-container-lowest p-card-padding card-shadow">
-  <div class="mb-4 flex items-center justify-between">
+  <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
     <h3 class="text-headline-sm text-on-surface">History</h3>
-    <div class="flex items-center gap-2 rounded-full bg-surface-container-high p-1">
-      <button (click)="directionFilter.set(''); applyFilters()" class="rounded-full px-4 py-1.5 text-label-md" [class.bg-primary]="directionFilter() === ''" [class.text-white]="directionFilter() === ''" [class.text-on-surface-variant]="directionFilter() !== ''">All</button>
-      <button (click)="directionFilter.set('CREDIT'); applyFilters()" class="rounded-full px-4 py-1.5 text-label-md" [class.bg-primary]="directionFilter() === 'CREDIT'" [class.text-white]="directionFilter() === 'CREDIT'" [class.text-on-surface-variant]="directionFilter() !== 'CREDIT'">Received</button>
-      <button (click)="directionFilter.set('DEBIT'); applyFilters()" class="rounded-full px-4 py-1.5 text-label-md" [class.bg-primary]="directionFilter() === 'DEBIT'" [class.text-white]="directionFilter() === 'DEBIT'" [class.text-on-surface-variant]="directionFilter() !== 'DEBIT'">Sent</button>
+    <div class="flex items-center gap-3">
+      <div class="flex items-center gap-2 rounded-full bg-surface-container-high p-1">
+        <button (click)="directionFilter.set(''); applyFilters()" class="rounded-full px-4 py-1.5 text-label-md" [class.bg-primary]="directionFilter() === ''" [class.text-white]="directionFilter() === ''" [class.text-on-surface-variant]="directionFilter() !== ''">All</button>
+        <button (click)="directionFilter.set('CREDIT'); applyFilters()" class="rounded-full px-4 py-1.5 text-label-md" [class.bg-primary]="directionFilter() === 'CREDIT'" [class.text-white]="directionFilter() === 'CREDIT'" [class.text-on-surface-variant]="directionFilter() !== 'CREDIT'">Received</button>
+        <button (click)="directionFilter.set('DEBIT'); applyFilters()" class="rounded-full px-4 py-1.5 text-label-md" [class.bg-primary]="directionFilter() === 'DEBIT'" [class.text-white]="directionFilter() === 'DEBIT'" [class.text-on-surface-variant]="directionFilter() !== 'DEBIT'">Sent</button>
+      </div>
+      <button
+        (click)="exportCsv()"
+        [disabled]="exporting() || history().length === 0"
+        class="flex items-center gap-1.5 rounded-lg bg-surface-container-low px-4 py-2 text-body-md font-bold text-on-surface-variant transition-colors hover:bg-surface-container-high disabled:opacity-60"
+      >
+        <span class="material-symbols-outlined text-lg">download</span>
+        {{ exporting() ? 'Exporting…' : 'Export CSV' }}
+      </button>
     </div>
   </div>
 

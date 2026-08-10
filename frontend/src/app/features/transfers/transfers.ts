@@ -12,6 +12,8 @@ import { RecipientPreview } from '../../core/models/wallet.model';
 import { Transfer, TransferDirection } from '../../core/models/transaction.model';
 import { CustomerWalletPicker, CustomerWalletSelection } from '../../shared/customer-wallet-picker/customer-wallet-picker';
 import { TransientSignal } from '../../shared/utils/transient-signal';
+import { fetchAllPages } from '../../shared/utils/fetch-all-pages.util';
+import { downloadCsv } from '../../shared/utils/csv-export.util';
 
 @Component({
   selector: 'app-transfers',
@@ -46,6 +48,7 @@ export class Transfers {
   protected readonly directionFilter = signal<TransferDirection | ''>('');
   protected readonly nextPageUrl = signal<string | null>(null);
   protected readonly loadingMore = signal(false);
+  protected readonly exporting = signal(false);
 
   // --- Agent: selected customer + wallet ---
   protected readonly selectedCustomer = signal<Customer | null>(null);
@@ -160,6 +163,32 @@ export class Transfers {
       error: () => {
         this.historyError.set('Could not load more transfers.');
         this.loadingMore.set(false);
+      },
+    });
+  }
+
+  exportCsv(): void {
+    const wallet = this.auth.isCustomer() ? this.myWallet.activeWallet() : this.selectedWallet();
+    if (!wallet || this.exporting()) {
+      return;
+    }
+
+    this.exporting.set(true);
+    fetchAllPages(
+      this.transferService.list(wallet.id, { direction: this.directionFilter() || undefined }),
+      (url) => this.transferService.loadMore(url),
+    ).subscribe({
+      next: (transfers) => {
+        downloadCsv(
+          `transfers-${wallet.tag}-${new Date().toISOString().slice(0, 10)}.csv`,
+          ['Date', 'Reference', 'Direction', 'From', 'To', 'Amount', 'Currency'],
+          transfers.map((t) => [t.created_at, t.reference, t.direction, t.from_wallet, t.to_wallet, t.amount, t.currency]),
+        );
+        this.exporting.set(false);
+      },
+      error: () => {
+        this.historyError.set('Could not export transfer history.');
+        this.exporting.set(false);
       },
     });
   }
