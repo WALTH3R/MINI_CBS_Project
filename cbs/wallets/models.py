@@ -40,6 +40,23 @@ class IdempotencyKey(models.Model):
         ]
 
 
+class Beneficiary(models.Model):
+    """A customer's saved transfer recipient — lets them pick from a list instead of retyping
+    the recipient's wallet tag every time."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    owner = models.ForeignKey("accounts.User", on_delete=models.CASCADE, related_name="beneficiaries")
+    target_wallet = models.ForeignKey(Wallet, on_delete=models.CASCADE, related_name="beneficiary_of")
+    nickname = models.CharField(max_length=100)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["owner", "target_wallet"], name="unique_beneficiary_per_owner_wallet"),
+        ]
+        ordering = ["nickname"]
+
+
 class WalletCreationRequest(models.Model):
     
     class Status(models.TextChoices):

@@ -697,3 +697,94 @@ class WalletConcurrencyTests(TransactionTestCase):
         self.assertEqual(sender_wallet.balance, Decimal("40.00"))
         self.assertEqual(recipient_wallet.balance, Decimal("60.00"))
         self.assertGreaterEqual(sender_wallet.balance, Decimal("0"))
+
+
+class BeneficiaryTests(BaseAPITestCase):
+    def setUp(self):
+        self.profile = self.make_wallet_profile()
+        self.owner, _, self.owner_wallet = self.make_customer("owner", self.profile)
+        self.recipient, _, self.recipient_wallet = self.make_customer("recipient", self.profile, tag="recipient.tag")
+        self.agent = self.make_agent()
+        self.auth_as(self.owner)
+
+    def test_create_beneficiary(self):
+        response = self.client.post(
+            "/api/wallets/beneficiaries/", {"tag": self.recipient_wallet.tag, "nickname": "Sis"},
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["nickname"], "Sis")
+        self.assertEqual(response.data["wallet_tag"], self.recipient_wallet.tag)
+        self.assertEqual(response.data["first_name"], self.recipient.first_name)
+        self.assertEqual(response.data["name"], self.recipient.last_name)
+
+    def test_cannot_save_own_wallet(self):
+        response = self.client.post(
+            "/api/wallets/beneficiaries/", {"tag": self.owner_wallet.tag, "nickname": "Me"},
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("tag", response.data)
+
+    def test_cannot_save_a_non_customer_wallet(self):
+        merchant = self.make_merchant("WaterCo", self.agent, self.profile)
+        response = self.client.post(
+            "/api/wallets/beneficiaries/", {"tag": merchant.wallet.tag, "nickname": "Water"},
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("tag", response.data)
+
+    def test_unknown_tag_is_a_400(self):
+        response = self.client.post(
+            "/api/wallets/beneficiaries/", {"tag": "no.such.tag", "nickname": "Ghost"},
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_duplicate_beneficiary_is_rejected_with_a_friendly_error(self):
+        self.client.post("/api/wallets/beneficiaries/", {"tag": self.recipient_wallet.tag, "nickname": "Sis"})
+        response = self.client.post(
+            "/api/wallets/beneficiaries/", {"tag": self.recipient_wallet.tag, "nickname": "Sister again"},
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("tag", response.data)
+
+    def test_list_is_scoped_to_the_owner(self):
+        self.client.post("/api/wallets/beneficiaries/", {"tag": self.recipient_wallet.tag, "nickname": "Sis"})
+
+        other_owner, _, _ = self.make_customer("other_owner", self.profile)
+        self.auth_as(other_owner)
+        response = self.client.get("/api/wallets/beneficiaries/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 0)
+
+    def test_search_matches_nickname_tag_or_name(self):
+        self.client.post("/api/wallets/beneficiaries/", {"tag": self.recipient_wallet.tag, "nickname": "Sis"})
+
+        self.assertEqual(len(self.client.get("/api/wallets/beneficiaries/?search=Sis").data), 1)
+        self.assertEqual(len(self.client.get("/api/wallets/beneficiaries/?search=recipient.tag").data), 1)
+        self.assertEqual(len(self.client.get("/api/wallets/beneficiaries/?search=nomatch").data), 0)
+
+    def test_delete_removes_it(self):
+        create = self.client.post("/api/wallets/beneficiaries/", {"tag": self.recipient_wallet.tag, "nickname": "Sis"})
+        beneficiary_id = create.data["id"]
+
+        response = self.client.delete(f"/api/wallets/beneficiaries/{beneficiary_id}/")
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(len(self.client.get("/api/wallets/beneficiaries/").data), 0)
+
+    def test_cannot_delete_another_customers_beneficiary(self):
+        create = self.client.post("/api/wallets/beneficiaries/", {"tag": self.recipient_wallet.tag, "nickname": "Sis"})
+        beneficiary_id = create.data["id"]
+
+        other_owner, _, _ = self.make_customer("other_owner2", self.profile)
+        self.auth_as(other_owner)
+        response = self.client.delete(f"/api/wallets/beneficiaries/{beneficiary_id}/")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_agent_cannot_use_beneficiaries(self):
+        self.auth_as(self.agent)
+        self.assertEqual(self.client.get("/api/wallets/beneficiaries/").status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(
+            self.client.post("/api/wallets/beneficiaries/", {"tag": "x", "nickname": "x"}).status_code,
+            status.HTTP_403_FORBIDDEN,
+        )

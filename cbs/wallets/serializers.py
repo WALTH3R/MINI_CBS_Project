@@ -4,7 +4,7 @@ from rest_framework import serializers
 
 from accounts.models import Role
 from merchants.models import Transaction
-from .models import Wallet, WalletCreationRequest, WalletProfile
+from .models import Beneficiary, Wallet, WalletCreationRequest, WalletProfile
 from .services import do_deposit, do_pay_merchant, do_transfer, resolve_merchant_by_tag, resolve_wallet_by_tag
 
 
@@ -194,3 +194,39 @@ class PaymentCreateSerializer(serializers.Serializer):
         merchant = validated_data["merchant"]
         performed_by = self.context["request"].user
         return do_pay_merchant(from_wallet, merchant, validated_data["amount"], performed_by)
+
+
+class BeneficiarySerializer(serializers.ModelSerializer):
+    # Input: the tag to resolve into a target_wallet (write-only — a Beneficiary has no `tag`
+    # attribute of its own to read back). Output: wallet_tag, sourced from the resolved wallet.
+    tag = serializers.CharField(write_only=True)
+    wallet_tag = serializers.CharField(source="target_wallet.tag", read_only=True)
+    first_name = serializers.CharField(source="target_wallet.client.first_name", read_only=True)
+    name = serializers.CharField(source="target_wallet.client.last_name", read_only=True)
+
+    class Meta:
+        model = Beneficiary
+        fields = ["id", "nickname", "tag", "wallet_tag", "first_name", "name", "created_at"]
+        read_only_fields = ["id", "wallet_tag", "first_name", "name", "created_at"]
+
+    def validate(self, attrs):
+        owner = self.context["request"].user
+        try:
+            target_wallet = resolve_wallet_by_tag(attrs["tag"])
+        except serializers.ValidationError as exc:
+            raise serializers.ValidationError({"tag": exc.detail})
+
+        if target_wallet.client_id == owner.id:
+            raise serializers.ValidationError({"tag": "You cannot save your own wallet as a beneficiary."})
+        if target_wallet.client.role != Role.CLIENT:
+            raise serializers.ValidationError({"tag": "Recipient tag does not belong to a customer wallet."})
+        if Beneficiary.objects.filter(owner=owner, target_wallet=target_wallet).exists():
+            raise serializers.ValidationError({"tag": "You already have a beneficiary saved for this tag."})
+
+        attrs["target_wallet"] = target_wallet
+        return attrs
+
+    def create(self, validated_data):
+        validated_data.pop("tag", None)
+        validated_data["owner"] = self.context["request"].user
+        return Beneficiary.objects.create(**validated_data)

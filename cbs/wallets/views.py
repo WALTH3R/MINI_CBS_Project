@@ -2,7 +2,7 @@ from django.db.models import Q
 from django.utils import timezone
 from merchants.models import Transaction
 from rest_framework.exceptions import PermissionDenied, ValidationError
-from rest_framework.generics import ListAPIView, ListCreateAPIView, RetrieveAPIView, RetrieveUpdateAPIView
+from rest_framework.generics import DestroyAPIView, ListAPIView, ListCreateAPIView, RetrieveAPIView, RetrieveUpdateAPIView
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -11,10 +11,11 @@ from accounts.models import Role
 from cbs.pagination import StandardResultsPagination
 from cbs.utils import ValidatedUUIDLookupMixin, get_object_or_400, parse_uuid
 from .idempotency import idempotent_create
-from .models import Wallet, WalletCreationRequest, WalletProfile
+from .models import Beneficiary, Wallet, WalletCreationRequest, WalletProfile
 from .permissions import IsAgent, IsClient
 from .services import generate_unique_tag, resolve_wallet_by_tag
 from .serializers import (
+    BeneficiarySerializer,
     DepositCreateSerializer, DepositSerializer,
     PaymentCreateSerializer, PaymentSerializer,
     TransferCreateSerializer, TransferSerializer,
@@ -148,6 +149,32 @@ class RecipientLookupView(APIView):
             "first_name": wallet.client.first_name,
             "name": wallet.client.last_name,
         })
+
+
+class BeneficiaryListCreateView(ListCreateAPIView):
+    serializer_class = BeneficiarySerializer
+    permission_classes = [IsClient]
+
+    def get_queryset(self):
+        qs = Beneficiary.objects.filter(owner=self.request.user).select_related(
+            "target_wallet", "target_wallet__client",
+        )
+        search = self.request.query_params.get("search")
+        if search:
+            qs = qs.filter(
+                Q(nickname__icontains=search)
+                | Q(target_wallet__tag__icontains=search)
+                | Q(target_wallet__client__first_name__icontains=search)
+                | Q(target_wallet__client__last_name__icontains=search)
+            )
+        return qs
+
+
+class BeneficiaryDetailView(ValidatedUUIDLookupMixin, DestroyAPIView):
+    permission_classes = [IsClient]
+
+    def get_queryset(self):
+        return Beneficiary.objects.filter(owner=self.request.user)
 
 
 class WalletDetailView(WalletOwnerOrAgentMixin, RetrieveAPIView):

@@ -24,6 +24,89 @@
 
 @if (auth.isCustomer()) {
   <div class="mb-6 rounded-xl bg-surface-container-lowest p-card-padding card-shadow">
+    <h3 class="mb-4 text-headline-sm text-on-surface">Beneficiaries</h3>
+
+    @if (beneficiaryError()) {
+      <div class="mb-4 flex items-start gap-2 rounded-lg border border-error/20 bg-error-container px-4 py-3">
+        <span class="material-symbols-outlined text-on-error-container">error</span>
+        <p class="text-body-md text-on-error-container">{{ beneficiaryError() }}</p>
+      </div>
+    }
+
+    <div class="relative max-w-md">
+      <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+      <input
+        type="text"
+        [value]="beneficiarySearchTerm()"
+        (input)="onBeneficiarySearchInput($any($event.target).value)"
+        placeholder="Search saved beneficiaries"
+        class="w-full rounded-xl border-none bg-surface-container-low py-3 pl-10 pr-4 text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/30"
+      />
+    </div>
+
+    <div class="mt-3 flex flex-col gap-1">
+      @for (b of beneficiaries(); track b.id) {
+        <div class="flex items-center justify-between rounded-lg px-3 py-2.5 transition-colors hover:bg-surface-container-low">
+          <div>
+            <p class="text-body-md font-semibold text-on-surface">{{ b.nickname }}</p>
+            <p class="text-label-md text-on-surface-variant">{{ b.first_name }} {{ b.name }} · {{ b.wallet_tag }}</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button (click)="useBeneficiary(b)" class="rounded-lg bg-primary-container px-3 py-1.5 text-label-md font-bold text-on-primary-container">Use</button>
+            <button
+              (click)="removeBeneficiary(b)"
+              [disabled]="deletingBeneficiaryId() === b.id"
+              class="flex h-8 w-8 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-error-container hover:text-on-error-container disabled:opacity-60"
+              aria-label="Remove beneficiary"
+            >
+              <span class="material-symbols-outlined text-lg">delete</span>
+            </button>
+          </div>
+        </div>
+      } @empty {
+        <p class="px-3 py-2.5 text-body-md text-on-surface-variant">
+          {{ beneficiariesLoading() ? 'Loading…' : (beneficiarySearchTerm() ? 'No beneficiaries found.' : 'No saved beneficiaries yet.') }}
+        </p>
+      }
+    </div>
+
+    <div class="mt-4 grid grid-cols-1 gap-3 border-t border-outline-variant pt-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+      <div>
+        <label class="mb-1.5 block text-label-md text-on-surface-variant">Recipient's tag</label>
+        <input
+          type="text"
+          [value]="newBeneficiaryTag()"
+          (input)="newBeneficiaryTag.set($any($event.target).value)"
+          placeholder="e.g. jsmith.7734"
+          class="w-full rounded-xl border-none bg-surface-container-low px-4 py-3 text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/30"
+        />
+      </div>
+      <div>
+        <label class="mb-1.5 block text-label-md text-on-surface-variant">Nickname</label>
+        <input
+          type="text"
+          [value]="newBeneficiaryNickname()"
+          (input)="newBeneficiaryNickname.set($any($event.target).value)"
+          placeholder="e.g. Mom"
+          class="w-full rounded-xl border-none bg-surface-container-low px-4 py-3 text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/30"
+        />
+      </div>
+      <button
+        (click)="addBeneficiary()"
+        [disabled]="addingBeneficiary() || !newBeneficiaryTag() || !newBeneficiaryNickname()"
+        class="flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-body-md font-bold text-white disabled:opacity-60"
+      >
+        @if (addingBeneficiary()) {
+          <span class="material-symbols-outlined animate-spin text-lg">progress_activity</span>
+        } @else {
+          <span class="material-symbols-outlined text-lg">person_add</span>
+        }
+        Save
+      </button>
+    </div>
+  </div>
+
+  <div class="mb-6 rounded-xl bg-surface-container-lowest p-card-padding card-shadow">
     <h3 class="mb-4 text-headline-sm text-on-surface">Send money</h3>
 
     @if (lastTransfer(); as transfer) {

@@ -2,13 +2,16 @@ import { Component, effect, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
+import { Subject, debounceTime, distinctUntilChanged, switchMap } from 'rxjs';
 
 import { AuthService } from '../../core/services/auth.service';
 import { MyWalletStore } from '../../core/services/my-wallet.store';
 import { TransferService } from '../../core/services/transfer.service';
 import { WalletService } from '../../core/services/wallet.service';
+import { BeneficiaryService } from '../../core/services/beneficiary.service';
 import { Customer, CustomerWalletSummary } from '../../core/models/customer.model';
 import { RecipientPreview } from '../../core/models/wallet.model';
+import { Beneficiary } from '../../core/models/beneficiary.model';
 import { Transfer, TransferDirection } from '../../core/models/transaction.model';
 import { CustomerWalletPicker, CustomerWalletSelection } from '../../shared/customer-wallet-picker/customer-wallet-picker';
 import { TransientSignal } from '../../shared/utils/transient-signal';
@@ -26,6 +29,19 @@ export class Transfers {
   protected readonly myWallet = inject(MyWalletStore);
   private readonly transferService = inject(TransferService);
   private readonly walletService = inject(WalletService);
+  private readonly beneficiaryService = inject(BeneficiaryService);
+
+  // --- Customer: saved beneficiaries ---
+  protected readonly beneficiaries = signal<Beneficiary[]>([]);
+  protected readonly beneficiariesLoading = signal(false);
+  protected readonly beneficiarySearchTerm = signal('');
+  private readonly beneficiarySearch$ = new Subject<string>();
+  protected readonly newBeneficiaryTag = signal('');
+  protected readonly newBeneficiaryNickname = signal('');
+  protected readonly addingBeneficiary = signal(false);
+  private readonly beneficiaryErrorMsg = new TransientSignal<string>();
+  protected readonly beneficiaryError = this.beneficiaryErrorMsg.value;
+  protected readonly deletingBeneficiaryId = signal<string | null>(null);
 
   // --- Customer: send money ---
   protected readonly toTag = signal('');
@@ -65,7 +81,95 @@ export class Transfers {
           this.loadHistoryFor(wallet.id);
         }
       });
+
+      this.loadBeneficiaries();
+      this.beneficiarySearch$
+        .pipe(
+          debounceTime(300),
+          distinctUntilChanged(),
+          switchMap((term) => {
+            this.beneficiariesLoading.set(true);
+            return this.beneficiaryService.list(term || undefined);
+          }),
+        )
+        .subscribe({
+          next: (beneficiaries) => {
+            this.beneficiaries.set(beneficiaries);
+            this.beneficiariesLoading.set(false);
+          },
+          error: () => {
+            this.beneficiaryErrorMsg.set('Could not search beneficiaries.');
+            this.beneficiariesLoading.set(false);
+          },
+        });
     }
+  }
+
+  onBeneficiarySearchInput(term: string): void {
+    this.beneficiarySearchTerm.set(term);
+    this.beneficiarySearch$.next(term);
+  }
+
+  useBeneficiary(beneficiary: Beneficiary): void {
+    this.toTag.set(beneficiary.wallet_tag);
+  }
+
+  addBeneficiary(): void {
+    if (!this.newBeneficiaryTag() || !this.newBeneficiaryNickname() || this.addingBeneficiary()) {
+      return;
+    }
+
+    this.addingBeneficiary.set(true);
+    this.beneficiaryErrorMsg.set(null);
+
+    this.beneficiaryService.create(this.newBeneficiaryTag(), this.newBeneficiaryNickname()).subscribe({
+      next: (beneficiary) => {
+        this.beneficiaries.update((list) => [beneficiary, ...list]);
+        this.newBeneficiaryTag.set('');
+        this.newBeneficiaryNickname.set('');
+        this.addingBeneficiary.set(false);
+      },
+      error: (err: unknown) => {
+        this.addingBeneficiary.set(false);
+        if (err instanceof HttpErrorResponse && Array.isArray(err.error?.tag)) {
+          this.beneficiaryErrorMsg.set(err.error.tag.join(' '));
+        } else {
+          this.beneficiaryErrorMsg.set('Could not save this beneficiary.');
+        }
+      },
+    });
+  }
+
+  removeBeneficiary(beneficiary: Beneficiary): void {
+    if (this.deletingBeneficiaryId()) {
+      return;
+    }
+    this.deletingBeneficiaryId.set(beneficiary.id);
+
+    this.beneficiaryService.delete(beneficiary.id).subscribe({
+      next: () => {
+        this.beneficiaries.update((list) => list.filter((b) => b.id !== beneficiary.id));
+        this.deletingBeneficiaryId.set(null);
+      },
+      error: () => {
+        this.beneficiaryErrorMsg.set('Could not remove this beneficiary.');
+        this.deletingBeneficiaryId.set(null);
+      },
+    });
+  }
+
+  private loadBeneficiaries(): void {
+    this.beneficiariesLoading.set(true);
+    this.beneficiaryService.list().subscribe({
+      next: (beneficiaries) => {
+        this.beneficiaries.set(beneficiaries);
+        this.beneficiariesLoading.set(false);
+      },
+      error: () => {
+        this.beneficiaryErrorMsg.set('Could not load beneficiaries.');
+        this.beneficiariesLoading.set(false);
+      },
+    });
   }
 
   onWalletSelected({ customer, wallet }: CustomerWalletSelection): void {
