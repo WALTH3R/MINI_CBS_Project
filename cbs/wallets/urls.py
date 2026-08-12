@@ -3,7 +3,7 @@ from django.urls import path
 from .views import (
     BeneficiaryDetailView, BeneficiaryListCreateView,
     ConfirmWalletRequestView, DeclineWalletRequestView, MyWalletRequestsView, MyWalletView, RecipientLookupView,
-    WalletBalanceView, WalletDepositListCreateView, WalletDetailView,
+    WalletBalanceView, WalletDailyLimitView, WalletDepositListCreateView, WalletDetailView,
     WalletPaymentListCreateView, WalletProfileDetailView, WalletProfileListCreateView, WalletTransferListCreateView,
 )
 
@@ -22,4 +22,5 @@ urlpatterns = [
     path("<str:wallet_id>/payments/", WalletPaymentListCreateView.as_view()),
     path("<str:pk>/", WalletDetailView.as_view()),
     path("<str:pk>/balance/", WalletBalanceView.as_view()),
+    path("<str:pk>/daily-limit/", WalletDailyLimitView.as_view()),
 ]

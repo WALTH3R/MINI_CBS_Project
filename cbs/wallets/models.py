@@ -19,7 +19,20 @@ class Wallet(models.Model):
     profile = models.ForeignKey(WalletProfile, on_delete=models.PROTECT)
     balance = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     tag = models.CharField(max_length=30, unique=True)
+    # A customer's own, optional, tighter cap on top of the wallet profile's daily transfer
+    # limit. Null means "no personal override — use the profile's limit."
+    daily_transfer_limit = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def effective_daily_transfer_limit(self):
+        """The cap actually enforced on this wallet's transfers: the customer's own limit if
+        they've set one, clamped to (never above) the wallet profile's limit — so a profile
+        limit lowered after the fact still wins."""
+        profile_limit = self.profile.max_daily_transfer_total
+        if self.daily_transfer_limit is None:
+            return profile_limit
+        return min(self.daily_transfer_limit, profile_limit)
 
 
 class IdempotencyKey(models.Model):

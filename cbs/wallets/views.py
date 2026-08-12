@@ -19,7 +19,8 @@ from .serializers import (
     DepositCreateSerializer, DepositSerializer,
     PaymentCreateSerializer, PaymentSerializer,
     TransferCreateSerializer, TransferSerializer,
-    WalletBalanceSerializer, WalletCreationRequestSerializer, WalletProfileSerializer, WalletSerializer,
+    WalletBalanceSerializer, WalletCreationRequestSerializer, WalletDailyLimitSerializer,
+    WalletProfileSerializer, WalletSerializer,
 )
 
 
@@ -185,6 +186,18 @@ class WalletDetailView(WalletOwnerOrAgentMixin, RetrieveAPIView):
 class WalletBalanceView(WalletOwnerOrAgentMixin, RetrieveAPIView):
     queryset = Wallet.objects.all()
     serializer_class = WalletBalanceSerializer
+
+
+class WalletDailyLimitView(ValidatedUUIDLookupMixin, RetrieveUpdateAPIView):
+    """A customer's own personal daily transfer limit — never an agent's or admin's to set, and
+    scoped strictly to wallets the requesting customer owns (a mismatch 404s, same as
+    BeneficiaryDetailView, rather than leaking existence via a 403)."""
+    serializer_class = WalletDailyLimitSerializer
+    permission_classes = [IsClient]
+    http_method_names = ["get", "patch"]
+
+    def get_queryset(self):
+        return Wallet.objects.filter(client=self.request.user).select_related("profile")
 
 
 class WalletProfileListCreateView(ListCreateAPIView):

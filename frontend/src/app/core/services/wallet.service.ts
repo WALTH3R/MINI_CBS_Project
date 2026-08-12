@@ -3,7 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
-import { RecipientPreview, Wallet, WalletBalance, WalletProfile, WalletRequest } from '../models/wallet.model';
+import { RecipientPreview, Wallet, WalletBalance, WalletDailyLimit, WalletProfile, WalletRequest } from '../models/wallet.model';
 
 const BASE = `${environment.apiBaseUrl}/api/wallets`;
 const ACCOUNTS_BASE = `${environment.apiBaseUrl}/api/accounts`;
@@ -23,6 +23,17 @@ export class WalletService {
 
   getBalance(walletId: string): Observable<WalletBalance> {
     return this.http.get<WalletBalance>(`${BASE}/${walletId}/balance/`);
+  }
+
+  getDailyLimit(walletId: string): Observable<WalletDailyLimit> {
+    return this.http.get<WalletDailyLimit>(`${BASE}/${walletId}/daily-limit/`);
+  }
+
+  /** Pass null to clear a personal override and fall back to the wallet profile's limit. */
+  setDailyLimit(walletId: string, dailyTransferLimit: string | null): Observable<WalletDailyLimit> {
+    return this.http.patch<WalletDailyLimit>(`${BASE}/${walletId}/daily-limit/`, {
+      daily_transfer_limit: dailyTransferLimit,
+    });
   }
 
   listProfiles(): Observable<WalletProfile[]> {

@@ -1,6 +1,7 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { HttpErrorResponse } from '@angular/common/http';
 import { forkJoin } from 'rxjs';
 
 import { AuthService } from '../../core/services/auth.service';
@@ -40,6 +41,13 @@ export class Dashboard {
   protected readonly decidingRequestId = signal<string | null>(null);
   private readonly requestErrorMsg = new TransientSignal<string>();
   protected readonly requestError = this.requestErrorMsg.value;
+
+  // --- Customer's own daily transfer limit (capped by the wallet profile's limit) ---
+  protected readonly editingDailyLimit = signal(false);
+  protected readonly dailyLimitInput = signal('');
+  protected readonly savingDailyLimit = signal(false);
+  private readonly dailyLimitErrorMsg = new TransientSignal<string>();
+  protected readonly dailyLimitError = this.dailyLimitErrorMsg.value;
 
   private readonly deposits = signal<Deposit[]>([]);
   private readonly transfers = signal<Transfer[]>([]);
@@ -140,11 +148,60 @@ export class Dashboard {
   }
 
   protected dailyTransferUsagePercent(wallet: Wallet): number {
-    const max = Number(wallet.profile.max_daily_transfer_total);
+    const max = Number(wallet.effective_daily_transfer_limit);
     if (!max) {
       return 0;
     }
     return Math.min(100, (this.todayTransferredTotal() / max) * 100);
+  }
+
+  startEditDailyLimit(wallet: Wallet): void {
+    this.dailyLimitInput.set(wallet.daily_transfer_limit ?? '');
+    this.dailyLimitErrorMsg.set(null);
+    this.editingDailyLimit.set(true);
+  }
+
+  cancelEditDailyLimit(): void {
+    this.editingDailyLimit.set(false);
+    this.dailyLimitErrorMsg.set(null);
+  }
+
+  /** Clears the customer's personal override, reverting to the wallet profile's daily limit. */
+  resetDailyLimit(wallet: Wallet): void {
+    this.saveDailyLimit(wallet, null);
+  }
+
+  submitDailyLimit(wallet: Wallet): void {
+    const raw = this.dailyLimitInput().trim();
+    if (!raw) {
+      this.dailyLimitErrorMsg.set('Enter an amount, or use "Reset to profile default" instead.');
+      return;
+    }
+    this.saveDailyLimit(wallet, raw);
+  }
+
+  private saveDailyLimit(wallet: Wallet, value: string | null): void {
+    if (this.savingDailyLimit()) {
+      return;
+    }
+    this.savingDailyLimit.set(true);
+    this.dailyLimitErrorMsg.set(null);
+
+    this.walletService.setDailyLimit(wallet.id, value).subscribe({
+      next: () => {
+        this.savingDailyLimit.set(false);
+        this.editingDailyLimit.set(false);
+        this.myWallet.refresh().subscribe();
+      },
+      error: (err: unknown) => {
+        this.savingDailyLimit.set(false);
+        if (err instanceof HttpErrorResponse && Array.isArray(err.error?.daily_transfer_limit)) {
+          this.dailyLimitErrorMsg.set(err.error.daily_transfer_limit.join(' '));
+        } else {
+          this.dailyLimitErrorMsg.set('Could not update your daily limit. Please try again.');
+        }
+      },
+    });
   }
 
   private loadWalletData(walletId: string): void {

@@ -14,7 +14,19 @@ export interface Wallet {
   profile: WalletProfile;
   tag: string;
   balance: string;
+  /** The customer's own daily transfer cap, or null if they haven't set one (falls back to the profile's). */
+  daily_transfer_limit: string | null;
+  /** The cap actually enforced: daily_transfer_limit if set, otherwise the profile's max_daily_transfer_total. */
+  effective_daily_transfer_limit: string;
   created_at: string;
+}
+
+/** Response shape from GET/PATCH /api/wallets/{id}/daily-limit/. */
+export interface WalletDailyLimit {
+  id: string;
+  daily_transfer_limit: string | null;
+  profile_daily_transfer_limit: string;
+  effective_daily_transfer_limit: string;
 }
 
 export interface WalletBalance {

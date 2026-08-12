@@ -282,6 +282,87 @@ class WalletDetailBalanceTests(BaseAPITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
 
+class WalletDailyLimitTests(BaseAPITestCase):
+    def setUp(self):
+        self.agent = self.make_agent()
+        self.profile = self.make_wallet_profile(max_daily_transfer_total=Decimal("1000.00"))
+        self.owner, _, self.wallet = self.make_customer("owner", self.profile)
+        self.other, _, _ = self.make_customer("other", self.profile)
+        self.auth_as(self.owner)
+
+    def test_defaults_to_the_profile_limit_when_unset(self):
+        response = self.client.get(f"/api/wallets/{self.wallet.id}/daily-limit/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIsNone(response.data["daily_transfer_limit"])
+        self.assertEqual(Decimal(str(response.data["profile_daily_transfer_limit"])), Decimal("1000.00"))
+        self.assertEqual(Decimal(str(response.data["effective_daily_transfer_limit"])), Decimal("1000.00"))
+
+    def test_owner_can_set_a_tighter_limit(self):
+        response = self.client.patch(
+            f"/api/wallets/{self.wallet.id}/daily-limit/", {"daily_transfer_limit": "200.00"},
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(Decimal(str(response.data["effective_daily_transfer_limit"])), Decimal("200.00"))
+        self.wallet.refresh_from_db()
+        self.assertEqual(self.wallet.daily_transfer_limit, Decimal("200.00"))
+
+    def test_cannot_set_above_the_profile_limit(self):
+        response = self.client.patch(
+            f"/api/wallets/{self.wallet.id}/daily-limit/", {"daily_transfer_limit": "5000.00"},
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("daily_transfer_limit", response.data)
+        self.wallet.refresh_from_db()
+        self.assertIsNone(self.wallet.daily_transfer_limit)
+
+    def test_cannot_set_zero_or_negative(self):
+        for bad_value in ("0", "-50.00"):
+            response = self.client.patch(
+                f"/api/wallets/{self.wallet.id}/daily-limit/", {"daily_transfer_limit": bad_value},
+            )
+            self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_setting_null_clears_the_override(self):
+        Wallet.objects.filter(id=self.wallet.id).update(daily_transfer_limit=Decimal("200.00"))
+
+        response = self.client.patch(
+            f"/api/wallets/{self.wallet.id}/daily-limit/", {"daily_transfer_limit": None}, format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIsNone(response.data["daily_transfer_limit"])
+        self.assertEqual(Decimal(str(response.data["effective_daily_transfer_limit"])), Decimal("1000.00"))
+
+    def test_another_customer_cannot_see_or_set_it(self):
+        self.auth_as(self.other)
+
+        response = self.client.get(f"/api/wallets/{self.wallet.id}/daily-limit/")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+        response = self.client.patch(
+            f"/api/wallets/{self.wallet.id}/daily-limit/", {"daily_transfer_limit": "10.00"},
+        )
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_agent_cannot_set_a_customers_limit(self):
+        self.auth_as(self.agent)
+        response = self.client.patch(
+            f"/api/wallets/{self.wallet.id}/daily-limit/", {"daily_transfer_limit": "10.00"},
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_effective_limit_clamps_if_profile_limit_drops_below_a_stored_override(self):
+        Wallet.objects.filter(id=self.wallet.id).update(daily_transfer_limit=Decimal("800.00"))
+        self.profile.max_daily_transfer_total = Decimal("500.00")
+        self.profile.save()
+
+        self.wallet.refresh_from_db()
+        self.assertEqual(self.wallet.effective_daily_transfer_limit, Decimal("500.00"))
+
+
 class DepositTests(BaseAPITestCase):
     def setUp(self):
         self.agent = self.make_agent()
@@ -459,6 +540,20 @@ class TransferTests(BaseAPITestCase):
             **idempotency_headers(),
         )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_a_customers_own_tighter_daily_limit_is_enforced(self):
+        # Well within the profile's own daily cap, but above the sender's personal override.
+        Wallet.objects.filter(id=self.sender_wallet.id).update(daily_transfer_limit=Decimal("30.00"))
+
+        response = self.client.post(
+            f"/api/wallets/{self.sender_wallet.id}/transfers/",
+            {"to_tag": self.recipient_wallet.tag, "amount": "50.00"},
+            **idempotency_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.sender_wallet.refresh_from_db()
+        self.assertEqual(self.sender_wallet.balance, Decimal("200.00"))  # untouched
 
 
 class PaymentTests(BaseAPITestCase):

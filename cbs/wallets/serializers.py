@@ -20,11 +20,43 @@ class WalletProfileSerializer(serializers.ModelSerializer):
 class WalletSerializer(serializers.ModelSerializer):
     client = serializers.CharField(source="client.username", read_only=True)
     profile = WalletProfileSerializer(read_only=True)
+    effective_daily_transfer_limit = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
 
     class Meta:
         model = Wallet
-        fields = ["id", "client", "profile", "tag", "balance", "created_at"]
+        fields = [
+            "id", "client", "profile", "tag", "balance",
+            "daily_transfer_limit", "effective_daily_transfer_limit", "created_at",
+        ]
         read_only_fields = fields
+
+
+class WalletDailyLimitSerializer(serializers.ModelSerializer):
+    """Lets a customer view and set their own personal daily transfer limit — never above their
+    wallet profile's limit, which is echoed back so the frontend can show the ceiling."""
+
+    profile_daily_transfer_limit = serializers.DecimalField(
+        source="profile.max_daily_transfer_total", max_digits=12, decimal_places=2, read_only=True,
+    )
+    effective_daily_transfer_limit = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+
+    class Meta:
+        model = Wallet
+        fields = ["id", "daily_transfer_limit", "profile_daily_transfer_limit", "effective_daily_transfer_limit"]
+        read_only_fields = ["id", "profile_daily_transfer_limit", "effective_daily_transfer_limit"]
+        extra_kwargs = {"daily_transfer_limit": {"required": False}}
+
+    def validate_daily_transfer_limit(self, value):
+        if value is None:
+            return value
+        if value <= 0:
+            raise serializers.ValidationError("Your daily limit must be greater than zero.")
+        profile_limit = self.instance.profile.max_daily_transfer_total
+        if value > profile_limit:
+            raise serializers.ValidationError(
+                f"Your daily limit cannot exceed your wallet profile's daily limit of {profile_limit}."
+            )
+        return value
 
 
 class WalletCreationRequestSerializer(serializers.ModelSerializer):

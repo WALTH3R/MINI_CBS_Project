@@ -115,8 +115,68 @@
               ></div>
             </div>
             <p class="mt-1.5 text-label-md text-white/60">
-              {{ todayTransferredTotal() | currencyAmount:wallet.profile.currency }} of {{ wallet.profile.max_daily_transfer_total | currencyAmount:wallet.profile.currency }} sent today
+              {{ todayTransferredTotal() | currencyAmount:wallet.profile.currency }} of {{ wallet.effective_daily_transfer_limit | currencyAmount:wallet.profile.currency }} sent today
+              @if (wallet.daily_transfer_limit) {
+                <span class="text-white/40">(your own limit; profile allows up to {{ wallet.profile.max_daily_transfer_total | currencyAmount:wallet.profile.currency }})</span>
+              }
             </p>
+
+            @if (!editingDailyLimit()) {
+              <button
+                type="button"
+                (click)="startEditDailyLimit(wallet)"
+                class="mt-2 text-label-md font-bold text-white underline decoration-white/40 underline-offset-2 hover:decoration-white"
+              >
+                Set your own daily limit
+              </button>
+            } @else {
+              <div class="mt-2.5 flex flex-col gap-2 rounded-lg bg-white/10 p-3">
+                @if (dailyLimitError()) {
+                  <p class="text-label-md text-error-container">{{ dailyLimitError() }}</p>
+                }
+                <div class="flex items-center gap-2">
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    [max]="wallet.profile.max_daily_transfer_total"
+                    [value]="dailyLimitInput()"
+                    (input)="dailyLimitInput.set($any($event.target).value)"
+                    placeholder="e.g. 200.00"
+                    class="w-full rounded-md border-none bg-white/90 px-2.5 py-1.5 text-body-md text-on-surface placeholder:text-on-surface-variant focus:outline focus:outline-2 focus:outline-white"
+                  />
+                  <button
+                    type="button"
+                    (click)="submitDailyLimit(wallet)"
+                    [disabled]="savingDailyLimit()"
+                    class="shrink-0 rounded-md bg-white px-3 py-1.5 text-label-md font-bold text-primary disabled:opacity-60"
+                  >
+                    {{ savingDailyLimit() ? 'Saving…' : 'Save' }}
+                  </button>
+                  <button
+                    type="button"
+                    (click)="cancelEditDailyLimit()"
+                    [disabled]="savingDailyLimit()"
+                    class="shrink-0 rounded-md px-2 py-1.5 text-label-md font-bold text-white/70 hover:text-white disabled:opacity-60"
+                  >
+                    Cancel
+                  </button>
+                </div>
+                <p class="text-label-md text-white/60">
+                  Up to {{ wallet.profile.max_daily_transfer_total | currencyAmount:wallet.profile.currency }} (your wallet profile's limit).
+                </p>
+                @if (wallet.daily_transfer_limit) {
+                  <button
+                    type="button"
+                    (click)="resetDailyLimit(wallet)"
+                    [disabled]="savingDailyLimit()"
+                    class="self-start text-label-md text-white/70 underline decoration-white/40 underline-offset-2 hover:text-white disabled:opacity-60"
+                  >
+                    Reset to profile default
+                  </button>
+                }
+              </div>
+            }
           </div>
 
           <div class="mt-6 grid grid-cols-2 gap-3 border-t border-white/20 pt-4 text-label-md">
@@ -125,7 +185,7 @@
               <p class="font-bold">{{ wallet.profile.max_transfer_amount | currencyAmount }}</p>
             </div>
             <div>
-              <p class="text-white/60">Daily transfer limit</p>
+              <p class="text-white/60">Profile daily limit</p>
               <p class="font-bold">{{ wallet.profile.max_daily_transfer_total | currencyAmount }}</p>
             </div>
             <div>
