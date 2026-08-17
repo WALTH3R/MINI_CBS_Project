@@ -1,0 +1,10 @@
+.git
+frontend
+venv
+.venv
+.env
+cbs/db.sqlite3
+cbs/staticfiles
+**/__pycache__
+**/*.pyc
+*.log

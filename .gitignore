@@ -5,3 +5,4 @@ db.sqlite3
 venv/
 .DS_Store
 cbs/staticfiles/
+zap-reports/

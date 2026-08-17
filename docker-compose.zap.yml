@@ -1,0 +1,83 @@
+# An isolated, throwaway copy of the whole stack for security testing (OWASP ZAP) — separate
+# containers, network, ports, volume, and database from docker-compose.yml, so nothing here
+# touches your normal local dev setup.
+#
+# Usage:
+#   docker compose -f docker-compose.zap.yml up --build
+#   -> target the app at http://localhost:8090/ (demo logins: admin/AdminPass123!,
+#      agent/AgentPass123!, alice/AlicePass123!, bob/BobPass123!)
+#   -> or hit the API directly at http://localhost:8010/api/...
+#
+# Optional one-shot ZAP baseline scan against it (writes a report into ./zap-reports):
+#   docker compose -f docker-compose.zap.yml --profile scan run --rm zap
+
+# Pinned explicitly: both compose files live in this same directory, and Compose's default
+# project name is derived from the directory — without this they'd collide under one project,
+# so a "down" on one file could tear down the other's containers.
+name: mini_cbs_zap
+
+services:
+  zap_db:
+    image: postgres:16
+    container_name: mini_cbs_zap_db
+    environment:
+      POSTGRES_DB: mini_cbs_zap
+      POSTGRES_USER: minicbs
+      POSTGRES_PASSWORD: minicbs_zap_password
+    volumes:
+      - mini_cbs_zap_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U minicbs -d mini_cbs_zap"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: cbs/Dockerfile
+    container_name: mini_cbs_zap_backend
+    depends_on:
+      zap_db:
+        condition: service_healthy
+    environment:
+      DEBUG: "True"
+      # Dummy value for this sandbox only — never reuse a throwaway key like this anywhere real.
+      SECRET_KEY: docker-zap-sandbox-secret-key-not-for-production
+      ALLOWED_HOSTS: "*"
+      CORS_ALLOWED_ORIGINS: http://localhost:8090
+      DB_ENGINE: django.db.backends.postgresql
+      DB_NAME: mini_cbs_zap
+      DB_USER: minicbs
+      DB_PASSWORD: minicbs_zap_password
+      DB_HOST: zap_db
+      DB_PORT: "5432"
+      SEED_DEMO_DATA: "1"
+    ports:
+      - "8010:8000"
+
+  zap_frontend:
+    build:
+      context: ./frontend
+    container_name: mini_cbs_zap_frontend
+    depends_on:
+      - backend
+    ports:
+      - "8090:80"
+
+  # Optional convenience runner for ZAP's baseline (passive) scan — only starts with
+  # `--profile scan`. For an active/full scan or the interactive desktop UI, run the
+  # zaproxy/zap-stable image yourself against http://localhost:8090/ instead.
+  zap:
+    image: zaproxy/zap-stable
+    container_name: mini_cbs_zap
+    profiles: ["scan"]
+    depends_on:
+      - zap_frontend
+    volumes:
+      - ./zap-reports:/zap/wrk:rw
+    command: >
+      zap-baseline.py -t http://zap_frontend/ -r zap-baseline-report.html -I
+
+volumes:
+  mini_cbs_zap_pgdata:
