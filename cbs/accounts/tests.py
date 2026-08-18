@@ -3,6 +3,7 @@ from decimal import Decimal
 from rest_framework import status
 from rest_framework_simplejwt.tokens import AccessToken
 
+from accounts.models import CustomerProfile, Role, SignupStatus, User
 from cbs.test_base import BaseAPITestCase
 from wallets.models import Wallet, WalletCreationRequest
 from wallets.services import do_deposit, do_pay_merchant, do_transfer
@@ -684,3 +685,196 @@ class AgentTransactionTests(BaseAPITestCase):
         self.auth_as(self.payer)
         response = self.client.get(f"/api/accounts/agents/{self.agent.id}/transactions/")
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+
+class PublicSignupTests(BaseAPITestCase):
+    def valid_payload(self, **overrides):
+        payload = {
+            "username": "newapplicant", "password": "somepassword123",
+            "name": "Doe", "first_name": "Jane", "parent_name": "Richard Doe",
+            "date_of_birth": "1995-03-20", "marital_status": "SINGLE",
+            "place_of_birth": "Kinshasa", "national_id_number": "NID-APPLICANT-1",
+        }
+        payload.update(overrides)
+        return payload
+
+    def test_signup_creates_a_pending_inactive_account_with_no_wallet(self):
+        response = self.client.post("/api/accounts/signup/", self.valid_payload())
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        user = User.objects.get(username="newapplicant")
+        self.assertFalse(user.is_active)
+        self.assertEqual(user.role, Role.CLIENT)
+        self.assertEqual(user.customer_profile.status, SignupStatus.PENDING)
+        self.assertFalse(Wallet.objects.filter(client=user).exists())
+
+    def test_does_not_require_authentication(self):
+        response = self.client.post("/api/accounts/signup/", self.valid_payload())
+        self.assertNotEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_duplicate_username_rejected(self):
+        self.make_agent("newapplicant")
+        response = self.client.post("/api/accounts/signup/", self.valid_payload())
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_duplicate_national_id_rejected(self):
+        wallet_profile = self.make_wallet_profile()
+        self.make_customer("existing", wallet_profile, national_id_number="NID-APPLICANT-1")
+
+        response = self.client.post("/api/accounts/signup/", self.valid_payload(username="someoneelse"))
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_wallet_profile_id_in_body_is_ignored_not_required(self):
+        response = self.client.post("/api/accounts/signup/", self.valid_payload(wallet_profile_id="garbage"))
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+
+class SignupRequestDecisionTests(BaseAPITestCase):
+    def setUp(self):
+        self.admin = self.make_admin()
+        self.wallet_profile = self.make_wallet_profile()
+        self.client.post("/api/accounts/signup/", {
+            "username": "applicant", "password": "somepassword123",
+            "name": "Doe", "first_name": "Jane", "parent_name": "Richard Doe",
+            "date_of_birth": "1995-03-20", "marital_status": "SINGLE",
+            "place_of_birth": "Kinshasa", "national_id_number": "NID-APPLICANT-1",
+        })
+        self.customer_profile = CustomerProfile.objects.get(user__username="applicant")
+
+    def test_admin_can_list_pending_requests(self):
+        self.auth_as(self.admin)
+        response = self.client.get("/api/accounts/signup-requests/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["username"], "applicant")
+        self.assertEqual(response.data[0]["status"], "PENDING")
+
+    def test_non_admin_cannot_list_pending_requests(self):
+        self.auth_as(self.make_agent())
+        response = self.client.get("/api/accounts/signup-requests/")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_admin_can_approve_creating_wallet_and_activating_user(self):
+        self.auth_as(self.admin)
+        response = self.client.post(
+            f"/api/accounts/signup-requests/{self.customer_profile.id}/approve/",
+            {"wallet_profile_id": str(self.wallet_profile.id)},
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["status"], "APPROVED")
+
+        self.customer_profile.refresh_from_db()
+        self.assertEqual(self.customer_profile.status, SignupStatus.APPROVED)
+        self.assertTrue(self.customer_profile.user.is_active)
+
+        wallet = Wallet.objects.get(client=self.customer_profile.user)
+        self.assertEqual(wallet.profile_id, self.wallet_profile.id)
+        self.assertEqual(wallet.tag, self.customer_profile.tag)
+
+    def test_approve_requires_a_wallet_profile(self):
+        self.auth_as(self.admin)
+        response = self.client.post(f"/api/accounts/signup-requests/{self.customer_profile.id}/approve/", {})
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_admin_can_deny_without_creating_a_wallet(self):
+        self.auth_as(self.admin)
+        response = self.client.post(f"/api/accounts/signup-requests/{self.customer_profile.id}/deny/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["status"], "DENIED")
+
+        self.customer_profile.refresh_from_db()
+        self.assertEqual(self.customer_profile.status, SignupStatus.DENIED)
+        self.assertFalse(self.customer_profile.user.is_active)
+        self.assertFalse(Wallet.objects.filter(client=self.customer_profile.user).exists())
+
+    def test_already_decided_request_cannot_be_decided_again(self):
+        self.auth_as(self.admin)
+        self.client.post(f"/api/accounts/signup-requests/{self.customer_profile.id}/deny/")
+
+        response = self.client.post(f"/api/accounts/signup-requests/{self.customer_profile.id}/deny/")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        response = self.client.post(
+            f"/api/accounts/signup-requests/{self.customer_profile.id}/approve/",
+            {"wallet_profile_id": str(self.wallet_profile.id)},
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_non_admin_cannot_approve_or_deny(self):
+        self.auth_as(self.make_agent())
+
+        response = self.client.post(
+            f"/api/accounts/signup-requests/{self.customer_profile.id}/approve/",
+            {"wallet_profile_id": str(self.wallet_profile.id)},
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+        response = self.client.post(f"/api/accounts/signup-requests/{self.customer_profile.id}/deny/")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_pending_request_excluded_from_the_regular_customer_list(self):
+        self.auth_as(self.admin)
+        response = self.client.get("/api/accounts/customers/")
+        self.assertEqual(response.data, [])
+
+    def test_denied_request_also_excluded_from_the_regular_customer_list(self):
+        self.auth_as(self.admin)
+        self.client.post(f"/api/accounts/signup-requests/{self.customer_profile.id}/deny/")
+
+        response = self.client.get("/api/accounts/customers/")
+        self.assertEqual(response.data, [])
+
+
+class PendingOrDeniedLoginMessageTests(BaseAPITestCase):
+    def setUp(self):
+        self.admin = self.make_admin()
+        self.wallet_profile = self.make_wallet_profile()
+        self.client.post("/api/accounts/signup/", {
+            "username": "applicant", "password": "correct-password-1",
+            "name": "Doe", "first_name": "Jane", "parent_name": "Richard Doe",
+            "date_of_birth": "1995-03-20", "marital_status": "SINGLE",
+            "place_of_birth": "Kinshasa", "national_id_number": "NID-APPLICANT-1",
+        })
+        self.customer_profile = CustomerProfile.objects.get(user__username="applicant")
+
+    def test_pending_login_with_correct_password_gets_specific_message(self):
+        response = self.client.post("/api/token/", {"username": "applicant", "password": "correct-password-1"})
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertIn("pending", response.data["detail"].lower())
+
+    def test_denied_login_with_correct_password_gets_specific_message(self):
+        self.auth_as(self.admin)
+        self.client.post(f"/api/accounts/signup-requests/{self.customer_profile.id}/deny/")
+
+        response = self.client.post("/api/token/", {"username": "applicant", "password": "correct-password-1"})
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertIn("denied", response.data["detail"].lower())
+
+    def test_wrong_password_against_a_pending_account_gets_the_generic_message(self):
+        response = self.client.post("/api/token/", {"username": "applicant", "password": "totally-wrong"})
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertNotIn("pending", response.data["detail"].lower())
+        self.assertNotIn("denied", response.data["detail"].lower())
+
+    def test_wrong_username_gets_the_generic_message_no_crash(self):
+        response = self.client.post("/api/token/", {"username": "nobody-like-this", "password": "whatever"})
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertNotIn("pending", response.data["detail"].lower())
+
+    def test_approved_but_deactivated_customer_still_gets_the_generic_message(self):
+        self.auth_as(self.admin)
+        self.client.post(
+            f"/api/accounts/signup-requests/{self.customer_profile.id}/approve/",
+            {"wallet_profile_id": str(self.wallet_profile.id)},
+        )
+        self.customer_profile.user.is_active = False
+        self.customer_profile.user.save()
+
+        response = self.client.post("/api/token/", {"username": "applicant", "password": "correct-password-1"})
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertNotIn("pending", response.data["detail"].lower())
+        self.assertNotIn("denied", response.data["detail"].lower())

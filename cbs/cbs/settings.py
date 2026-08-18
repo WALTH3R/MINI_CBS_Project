@@ -70,6 +70,7 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_THROTTLE_RATES': {
         'login': '5/min',
+        'signup': '5/hour',
     },
     # Render sits in front of the app as a single reverse-proxy hop, appending the real client IP
     # as the last entry in X-Forwarded-For. Without this, DRF trusts the client-supplied header

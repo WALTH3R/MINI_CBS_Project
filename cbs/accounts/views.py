@@ -1,11 +1,12 @@
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
+from django.db import transaction as db_transaction
 from django.db.models import Q, Sum
 from merchants.models import Transaction
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
-from rest_framework.generics import ListAPIView, ListCreateAPIView, RetrieveUpdateAPIView
+from rest_framework.generics import CreateAPIView, ListAPIView, ListCreateAPIView, RetrieveUpdateAPIView
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
@@ -20,10 +21,10 @@ from wallets.models import Wallet
 from wallets.permissions import IsAgent, IsAgentOrAdmin
 from wallets.serializers import WalletCreateSerializer, WalletCreationRequestSerializer, WalletSerializer
 from .auth import RoleTokenObtainPairSerializer
-from .models import CustomerProfile, Role
+from .models import CustomerProfile, Role, SignupStatus
 from .serializers import (
     AgentCreateSerializer, AgentStatusUpdateSerializer, CustomerCreateSerializer, CustomerProfileSerializer,
-    CustomerStatusUpdateSerializer, TransactionSerializer,
+    CustomerStatusUpdateSerializer, PublicSignupSerializer, SignupApprovalSerializer, TransactionSerializer,
 )
 
 User = get_user_model()
@@ -63,7 +64,9 @@ class CustomerListCreateView(ListCreateAPIView):
         return CustomerCreateSerializer if self.request.method == "POST" else CustomerProfileSerializer
 
     def get_queryset(self):
-        qs = CustomerProfile.objects.select_related("user").order_by("-created_at")
+        # Pending/denied signup requests aren't customers yet (no wallet, can't log in) — they
+        # only surface via SignupRequestListView until an admin decides them.
+        qs = CustomerProfile.objects.filter(status=SignupStatus.APPROVED).select_related("user").order_by("-created_at")
         search = self.request.query_params.get("search")
         if search:
             qs = qs.filter(
@@ -95,6 +98,66 @@ class CustomerDetailView(ValidatedUUIDLookupMixin, RetrieveUpdateAPIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(CustomerProfileSerializer(instance).data)
+
+
+class PublicSignupView(CreateAPIView):
+    """Public self-registration — no auth required. Creates a PENDING, inactive account; an
+    admin must approve it (SignupRequestListView + Approve/DenySignupRequestView) before the
+    applicant can log in."""
+    serializer_class = PublicSignupSerializer
+    permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "signup"
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(status=status.HTTP_201_CREATED)
+
+
+class SignupRequestListView(ListAPIView):
+    """Feeds the admin dashboard's "pending signup requests" panel."""
+    serializer_class = CustomerProfileSerializer
+    permission_classes = [IsAdminUser]
+
+    def get_queryset(self):
+        return CustomerProfile.objects.filter(status=SignupStatus.PENDING).select_related("user").order_by("-created_at")
+
+
+class _DecideSignupRequestView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def get_request(self, request_id):
+        customer = get_object_or_400(CustomerProfile, request_id)
+        if customer.status != SignupStatus.PENDING:
+            raise ValidationError("This signup request has already been decided.")
+        return customer
+
+
+class ApproveSignupRequestView(_DecideSignupRequestView):
+    def post(self, request, request_id):
+        customer = self.get_request(request_id)
+        serializer = SignupApprovalSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        wallet_profile = serializer.validated_data["wallet_profile_id"]
+
+        with db_transaction.atomic():
+            customer.status = SignupStatus.APPROVED
+            customer.save(update_fields=["status"])
+            customer.user.is_active = True
+            customer.user.save(update_fields=["is_active"])
+            Wallet.objects.create(client=customer.user, profile=wallet_profile, tag=customer.tag)
+
+        return Response(CustomerProfileSerializer(customer).data)
+
+
+class DenySignupRequestView(_DecideSignupRequestView):
+    def post(self, request, request_id):
+        customer = self.get_request(request_id)
+        customer.status = SignupStatus.DENIED
+        customer.save(update_fields=["status"])
+        return Response(CustomerProfileSerializer(customer).data)
 
 
 class AgentListCreateView(ListCreateAPIView):

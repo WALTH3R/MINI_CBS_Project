@@ -1,6 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { finalize } from 'rxjs';
 
@@ -10,7 +10,7 @@ import { ThemeService } from '../../../core/services/theme.service';
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, RouterLink],
   templateUrl: './login.html',
 })
 export class Login {
@@ -58,7 +58,15 @@ export class Login {
           this.router.navigateByUrl(returnUrl);
         },
         error: (err: unknown) => {
-          if (err instanceof HttpErrorResponse && (err.status === 401 || err.status === 400)) {
+          if (err instanceof HttpErrorResponse && err.status === 401) {
+            // The backend always sends a specific detail here — the generic "wrong credentials"
+            // message, or (see accounts/auth.py) one naming a pending/denied signup request.
+            this.errorMessage.set(
+              typeof err.error?.detail === 'string'
+                ? err.error.detail
+                : 'Incorrect username or password. Please try again.',
+            );
+          } else if (err instanceof HttpErrorResponse && err.status === 400) {
             this.errorMessage.set('Incorrect username or password. Please try again.');
           } else if (err instanceof HttpErrorResponse && err.status === 429) {
             this.errorMessage.set('Too many login attempts. Please wait a minute and try again.');

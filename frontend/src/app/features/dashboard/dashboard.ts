@@ -1,8 +1,10 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
-import { DecimalPipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { forkJoin } from 'rxjs';
+
+import { FormsModule } from '@angular/forms';
 
 import { AuthService } from '../../core/services/auth.service';
 import { MyWalletStore } from '../../core/services/my-wallet.store';
@@ -10,8 +12,10 @@ import { DepositService } from '../../core/services/deposit.service';
 import { TransferService } from '../../core/services/transfer.service';
 import { PaymentService } from '../../core/services/payment.service';
 import { WalletService } from '../../core/services/wallet.service';
+import { CustomerService } from '../../core/services/customer.service';
 import { Deposit, Transfer, Payment } from '../../core/models/transaction.model';
-import { Wallet, WalletRequest } from '../../core/models/wallet.model';
+import { Wallet, WalletProfile, WalletRequest } from '../../core/models/wallet.model';
+import { Customer } from '../../core/models/customer.model';
 import { CurrencyAmountPipe } from '../../shared/pipes/currency-amount.pipe';
 import { StatusBadge } from '../../shared/status-badge/status-badge';
 import { TransientSignal } from '../../shared/utils/transient-signal';
@@ -20,7 +24,7 @@ import { fetchAllPages } from '../../shared/utils/fetch-all-pages.util';
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [RouterLink, DecimalPipe, CurrencyAmountPipe, StatusBadge],
+  imports: [RouterLink, DecimalPipe, DatePipe, FormsModule, CurrencyAmountPipe, StatusBadge],
   templateUrl: './dashboard.html',
 })
 export class Dashboard {
@@ -30,6 +34,7 @@ export class Dashboard {
   private readonly transferService = inject(TransferService);
   private readonly paymentService = inject(PaymentService);
   private readonly walletService = inject(WalletService);
+  private readonly customerService = inject(CustomerService);
 
   protected readonly loading = signal(false);
   protected readonly loadError = signal<string | null>(null);
@@ -41,6 +46,15 @@ export class Dashboard {
   protected readonly decidingRequestId = signal<string | null>(null);
   private readonly requestErrorMsg = new TransientSignal<string>();
   protected readonly requestError = this.requestErrorMsg.value;
+
+  // --- Admin: pending signup requests (public self-registration awaiting approval/denial) ---
+  protected readonly pendingSignups = signal<Customer[]>([]);
+  protected readonly walletProfiles = signal<WalletProfile[]>([]);
+  protected readonly approvingSignupId = signal<string | null>(null);
+  protected readonly signupWalletProfileId = signal('');
+  protected readonly decidingSignupId = signal<string | null>(null);
+  private readonly signupErrorMsg = new TransientSignal<string>();
+  protected readonly signupError = this.signupErrorMsg.value;
 
   // --- Customer's own daily transfer limit (capped by the wallet profile's limit) ---
   protected readonly editingDailyLimit = signal(false);
@@ -100,6 +114,14 @@ export class Dashboard {
         error: () => this.requestErrorMsg.set('Could not load pending wallet requests.'),
       });
     }
+
+    if (this.auth.isAdmin()) {
+      this.customerService.listPendingSignups().subscribe({
+        next: (signups) => this.pendingSignups.set(signups),
+        error: () => this.signupErrorMsg.set('Could not load pending signup requests.'),
+      });
+      this.walletService.listProfiles().subscribe((profiles) => this.walletProfiles.set(profiles));
+    }
   }
 
   confirmWalletRequest(request: WalletRequest): void {
@@ -135,6 +157,53 @@ export class Dashboard {
       error: () => {
         this.decidingRequestId.set(null);
         this.requestErrorMsg.set('Could not decline this wallet request. Please try again.');
+      },
+    });
+  }
+
+  startApproveSignup(customer: Customer): void {
+    this.approvingSignupId.set(customer.id);
+    this.signupWalletProfileId.set('');
+    this.signupErrorMsg.set(null);
+  }
+
+  cancelApproveSignup(): void {
+    this.approvingSignupId.set(null);
+  }
+
+  confirmApproveSignup(customer: Customer): void {
+    if (!this.signupWalletProfileId() || this.decidingSignupId()) {
+      return;
+    }
+    this.decidingSignupId.set(customer.id);
+
+    this.customerService.approveSignup(customer.id, this.signupWalletProfileId()).subscribe({
+      next: () => {
+        this.pendingSignups.update((signups) => signups.filter((s) => s.id !== customer.id));
+        this.decidingSignupId.set(null);
+        this.approvingSignupId.set(null);
+      },
+      error: () => {
+        this.decidingSignupId.set(null);
+        this.signupErrorMsg.set('Could not approve this signup request. Please try again.');
+      },
+    });
+  }
+
+  denySignup(customer: Customer): void {
+    if (this.decidingSignupId()) {
+      return;
+    }
+    this.decidingSignupId.set(customer.id);
+
+    this.customerService.denySignup(customer.id).subscribe({
+      next: () => {
+        this.pendingSignups.update((signups) => signups.filter((s) => s.id !== customer.id));
+        this.decidingSignupId.set(null);
+      },
+      error: () => {
+        this.decidingSignupId.set(null);
+        this.signupErrorMsg.set('Could not deny this signup request. Please try again.');
       },
     });
   }

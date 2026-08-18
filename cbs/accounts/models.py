@@ -19,6 +19,12 @@ class MaritalStatus(models.TextChoices):
     WIDOWED = "WIDOWED", "Widowed"
 
 
+class SignupStatus(models.TextChoices):
+    PENDING = "PENDING", "Pending"
+    APPROVED = "APPROVED", "Approved"
+    DENIED = "DENIED", "Denied"
+
+
 class CustomerProfile(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.OneToOneField(
@@ -31,6 +37,9 @@ class CustomerProfile(models.Model):
     place_of_birth = models.CharField(max_length=100)
     national_id_number = models.CharField(max_length=50, unique=True)
     tag = models.CharField(max_length=30, unique=True)
+    # Agent-enrolled customers are approved outright (the default); only a public self-registration
+    # (see accounts/serializers.py:PublicSignupSerializer) starts out PENDING.
+    status = models.CharField(max_length=10, choices=SignupStatus.choices, default=SignupStatus.APPROVED)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

@@ -5,7 +5,7 @@ from rest_framework import serializers
 from merchants.models import Transaction
 from wallets.models import Wallet, WalletProfile
 from wallets.services import generate_unique_tag
-from .models import CustomerProfile, Role
+from .models import CustomerProfile, Role, SignupStatus
 
 User = get_user_model()
 
@@ -22,7 +22,7 @@ class CustomerProfileSerializer(serializers.ModelSerializer):
         fields = [
             "id", "username", "name", "first_name", "parent_name",
             "date_of_birth", "marital_status", "place_of_birth",
-            "national_id_number", "tag", "is_active", "wallets", "created_at",
+            "national_id_number", "tag", "status", "is_active", "wallets", "created_at",
         ]
         read_only_fields = fields
 
@@ -88,6 +88,52 @@ class CustomerCreateSerializer(serializers.ModelSerializer):
             Wallet.objects.create(client=user, profile=wallet_profile, tag=tag)
 
         return customer
+
+
+class PublicSignupSerializer(serializers.ModelSerializer):
+    """Public, unauthenticated self-registration — same personal fields an agent fills in via
+    CustomerCreateSerializer, minus wallet_profile_id (that's a back-office decision, made by
+    the admin at approval time in SignupApprovalSerializer, not by the applicant). Creates the
+    User inactive and the CustomerProfile PENDING; neither is usable until an admin approves."""
+
+    username = serializers.CharField(write_only=True)
+    password = serializers.CharField(write_only=True, style={"input_type": "password"})
+    name = serializers.CharField(source="user.last_name", max_length=150)
+    first_name = serializers.CharField(source="user.first_name", max_length=150)
+
+    class Meta:
+        model = CustomerProfile
+        fields = [
+            "id", "username", "password", "name", "first_name", "parent_name",
+            "date_of_birth", "marital_status", "place_of_birth", "national_id_number",
+        ]
+        read_only_fields = ["id"]
+
+    def validate_username(self, value):
+        if User.objects.filter(username=value).exists():
+            raise serializers.ValidationError("This username is already taken.")
+        return value
+
+    def create(self, validated_data):
+        user_data = validated_data.pop("user")
+        username = validated_data.pop("username")
+        password = validated_data.pop("password")
+
+        with transaction.atomic():
+            user = User(username=username, role=Role.CLIENT, is_active=False, **user_data)
+            user.set_password(password)
+            user.save()
+
+            tag = generate_unique_tag(username)
+            customer = CustomerProfile.objects.create(
+                user=user, tag=tag, status=SignupStatus.PENDING, **validated_data
+            )
+
+        return customer
+
+
+class SignupApprovalSerializer(serializers.Serializer):
+    wallet_profile_id = serializers.PrimaryKeyRelatedField(queryset=WalletProfile.objects.all())
 
 
 class AgentCreateSerializer(serializers.ModelSerializer):
