@@ -2,6 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
 import { AuthService } from '../core/services/auth.service';
+import { IdleTimeoutService } from '../core/services/idle-timeout.service';
 import { MyWalletStore } from '../core/services/my-wallet.store';
 import { ThemeService } from '../core/services/theme.service';
 import { CurrencyAmountPipe } from '../shared/pipes/currency-amount.pipe';
@@ -16,6 +17,9 @@ export class Shell {
   protected readonly auth = inject(AuthService);
   protected readonly myWallet = inject(MyWalletStore);
   protected readonly themeService = inject(ThemeService);
+  // Injected (not otherwise referenced) purely to start it — it self-manages via
+  // AuthService.isAuthenticated, and the warning modal below reads its signals directly.
+  protected readonly idleTimeout = inject(IdleTimeoutService);
   private readonly router = inject(Router);
 
   protected readonly switcherOpen = signal(false);

@@ -35,6 +35,14 @@ export class Login {
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly showPassword = signal(false);
 
+  // Set by IdleTimeoutService before it redirects here (?reason=idle) — lets someone know why
+  // they suddenly landed back on the login page instead of wherever they were.
+  protected readonly idleLogoutMessage = signal(
+    this.route.snapshot.queryParamMap.get('reason') === 'idle'
+      ? "You were signed out after a few minutes of inactivity. Sign back in to continue."
+      : null,
+  );
+
   togglePasswordVisibility(): void {
     this.showPassword.update((v) => !v);
   }
@@ -46,6 +54,7 @@ export class Login {
     }
 
     this.errorMessage.set(null);
+    this.idleLogoutMessage.set(null);
     this.submitting.set(true);
 
     const { username, password } = this.form.getRawValue();

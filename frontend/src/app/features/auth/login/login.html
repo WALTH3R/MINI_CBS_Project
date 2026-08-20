@@ -57,6 +57,13 @@
         Sign in to manage accounts, transfers, and payments.
       </p>
 
+      @if (idleLogoutMessage()) {
+        <div class="mt-6 flex items-start gap-2 rounded-lg border border-secondary/20 bg-secondary-container/40 px-4 py-3">
+          <span class="material-symbols-outlined text-lg text-on-secondary-container">schedule</span>
+          <p class="text-body-md text-on-secondary-container">{{ idleLogoutMessage() }}</p>
+        </div>
+      }
+
       @if (errorMessage()) {
         <div class="mt-6 flex items-start gap-2 rounded-lg border border-error/20 bg-error-container px-4 py-3">
           <span class="material-symbols-outlined text-lg text-on-error-container">error</span>

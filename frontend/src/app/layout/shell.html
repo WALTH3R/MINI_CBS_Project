@@ -1,4 +1,23 @@
 <div class="min-h-screen bg-surface">
+  @if (idleTimeout.warning()) {
+    <div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 px-4">
+      <div class="w-full max-w-sm rounded-xl bg-surface-container-lowest p-card-padding text-center card-shadow">
+        <span class="material-symbols-outlined text-4xl text-tertiary">schedule</span>
+        <h3 class="mt-3 text-headline-sm text-on-surface">Still there?</h3>
+        <p class="mt-2 text-body-md text-on-surface-variant">
+          You've been inactive for a while. For your security, you'll be signed out in
+          <span class="font-bold text-on-surface">{{ idleTimeout.secondsRemaining() }}s</span>.
+        </p>
+        <button
+          (click)="idleTimeout.stayActive()"
+          class="mt-6 w-full rounded-xl bg-primary py-3 text-body-md font-bold text-white transition-opacity hover:opacity-90"
+        >
+          Stay signed in
+        </button>
+      </div>
+    </div>
+  }
+
   <nav class="sticky top-0 z-50 flex h-20 w-full items-center justify-between border-b border-outline-variant bg-surface-container-lowest px-8">
     <div class="flex items-center gap-12">
       <a routerLink="/dashboard" class="flex items-center gap-2">
