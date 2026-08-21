@@ -15,6 +15,13 @@ const ACTIVITY_EVENTS = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchst
  * Signs a customer/agent/admin out after IDLE_TIMEOUT_MS of no mouse/keyboard/scroll/touch
  * activity — a "still there?" warning shows for the last WARNING_DURATION_MS of that window.
  * Self-starts/stops based on AuthService.isAuthenticated, so it's inert on /login and /signup.
+ *
+ * Backgrounded tabs get their setTimeout/setInterval calls throttled or delayed by the browser
+ * (sometimes by minutes), so the scheduled warn/logout callbacks can't be trusted to fire on
+ * time while hidden. Instead, everything is derived from the absolute `lastResetAt` timestamp,
+ * and `reconcile()` re-derives the correct state from the real clock whenever the tab regains
+ * visibility — self-correcting for however long it was actually backgrounded, rather than
+ * either missing the logout entirely or restarting the warning with a fresh 30s.
  */
 @Injectable({ providedIn: 'root' })
 export class IdleTimeoutService {
@@ -52,6 +59,7 @@ export class IdleTimeoutService {
     }
     this.listening = true;
     ACTIVITY_EVENTS.forEach((event) => window.addEventListener(event, this.onActivity, { passive: true }));
+    document.addEventListener('visibilitychange', this.onVisibilityChange);
     this.resetTimer();
   }
 
@@ -61,6 +69,7 @@ export class IdleTimeoutService {
     }
     this.listening = false;
     ACTIVITY_EVENTS.forEach((event) => window.removeEventListener(event, this.onActivity));
+    document.removeEventListener('visibilitychange', this.onVisibilityChange);
     this.clearTimers();
     this.warning.set(false);
   }
@@ -72,16 +81,46 @@ export class IdleTimeoutService {
     this.resetTimer();
   };
 
+  /** Merely switching back to this tab isn't activity by itself — only re-checks how much real
+   * time has actually passed since the last genuine reset. */
+  private onVisibilityChange = (): void => {
+    if (document.visibilityState === 'visible') {
+      this.reconcile();
+    }
+  };
+
   private resetTimer(): void {
     this.lastResetAt = Date.now();
-    this.clearTimers();
-    this.warning.set(false);
-    this.warnTimeoutId = setTimeout(() => this.showWarning(), ACTIVE_TIMEOUT_MS);
+    this.armFrom(0);
   }
 
-  private showWarning(): void {
+  private reconcile(): void {
+    this.armFrom(Date.now() - this.lastResetAt);
+  }
+
+  /** Arms whatever timer/warning state is correct given that `elapsedMs` has already passed
+   * since the last reset — used both for a fresh reset (elapsedMs=0) and to catch up after the
+   * tab was backgrounded for a while. */
+  private armFrom(elapsedMs: number): void {
+    this.clearTimers();
+
+    if (elapsedMs >= IDLE_TIMEOUT_MS) {
+      this.logout();
+      return;
+    }
+
+    if (elapsedMs >= ACTIVE_TIMEOUT_MS) {
+      this.beginWarning(IDLE_TIMEOUT_MS - elapsedMs);
+      return;
+    }
+
+    this.warning.set(false);
+    this.warnTimeoutId = setTimeout(() => this.beginWarning(WARNING_DURATION_MS), ACTIVE_TIMEOUT_MS - elapsedMs);
+  }
+
+  private beginWarning(remainingMs: number): void {
     this.warning.set(true);
-    let remaining = Math.round(WARNING_DURATION_MS / 1000);
+    let remaining = Math.ceil(remainingMs / 1000);
     this.secondsRemaining.set(remaining);
 
     this.countdownIntervalId = setInterval(() => {
@@ -89,7 +128,7 @@ export class IdleTimeoutService {
       this.secondsRemaining.set(remaining);
     }, 1000);
 
-    this.logoutTimeoutId = setTimeout(() => this.logout(), WARNING_DURATION_MS);
+    this.logoutTimeoutId = setTimeout(() => this.logout(), remainingMs);
   }
 
   private logout(): void {

@@ -33,6 +33,11 @@ function signIn(isAuthenticated: ReturnType<typeof signal<boolean>>) {
   TestBed.tick();
 }
 
+function setVisibility(state: 'visible' | 'hidden') {
+  vi.spyOn(document, 'visibilityState', 'get').mockReturnValue(state);
+  document.dispatchEvent(new Event('visibilitychange'));
+}
+
 describe('IdleTimeoutService', () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -124,6 +129,48 @@ describe('IdleTimeoutService', () => {
     vi.advanceTimersByTime(WARNING_DURATION_MS); // would've logged out if not reset
     expect(service.warning()).toBe(false);
     expect(logout).not.toHaveBeenCalled();
+  });
+
+  it('logs out immediately on becoming visible if the tab was backgrounded past the full timeout', () => {
+    const { isAuthenticated, logout, navigate } = setup();
+    signIn(isAuthenticated);
+
+    // Simulate a backgrounded tab: the wall clock moves well past the full idle timeout, but
+    // (as browsers throttle timers in hidden tabs) the scheduled logout callback never got to
+    // fire on its own — only setSystemTime, not advanceTimersByTime, so nothing runs yet.
+    vi.setSystemTime(Date.now() + IDLE_TIMEOUT_MS + 60_000);
+    expect(logout).not.toHaveBeenCalled();
+
+    setVisibility('visible');
+
+    expect(logout).toHaveBeenCalledTimes(1);
+    expect(navigate).toHaveBeenCalledWith(['/login'], { queryParams: { reason: 'idle' } });
+  });
+
+  it('shows the true remaining time, not a fresh 30s, if the tab returns partway into the warning window', () => {
+    const { service, isAuthenticated } = setup();
+    signIn(isAuthenticated);
+
+    // Backgrounded 10s into what should be the 30s warning window.
+    vi.setSystemTime(Date.now() + ACTIVE_TIMEOUT_MS + 10_000);
+    setVisibility('visible');
+
+    expect(service.warning()).toBe(true);
+    expect(service.secondsRemaining()).toBe(20);
+  });
+
+  it('does not treat merely returning to the tab as activity that resets the clock', () => {
+    const { service, isAuthenticated } = setup();
+    signIn(isAuthenticated);
+
+    vi.setSystemTime(Date.now() + ACTIVE_TIMEOUT_MS + 10_000);
+    setVisibility('visible');
+    expect(service.secondsRemaining()).toBe(20);
+
+    // If toggling visibility alone counted as activity, this would jump back up to 30.
+    setVisibility('hidden');
+    setVisibility('visible');
+    expect(service.secondsRemaining()).toBe(20);
   });
 
   it('stops tracking and hides the warning when auth state flips to false', () => {
